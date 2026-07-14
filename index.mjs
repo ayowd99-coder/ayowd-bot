@@ -1,19 +1,41 @@
 import http from "http";
 import TelegramBot from "node-telegram-bot-api";
 
-const port = process.env.PORT || 3000;
-http.createServer((_req, res) => {
-  res.writeHead(200);
-  res.end("AYOWD Bot is running");
-}).listen(Number(port));
-
 const token = "8746210235:AAE4rJfSD6xOCa2LBB9gyZaRnZWRgUzytpM";
-const bot = new TelegramBot(token, { 
-  polling: { 
-    polling: true,
-    drop_pending_updates: true // <--- INI KUNCINYA
-  } 
-});
+const url = "https://ayowd-bot.onrender.com";
+
+// ==========================================
+// 1. UBAH KE MODE WEBHOOK
+// ==========================================
+const bot = new TelegramBot(token, { webHook: true });
+bot.setWebHook(`${url}/bot${token}`);
+
+// ==========================================
+// 2. SERVER PINTAR (TERIMA WEBHOOK & UPTIMEROBOT)
+// ==========================================
+const port = process.env.PORT || 3000;
+http.createServer((req, res) => {
+  // Jalur khusus untuk menerima pesan (chat) dari server Telegram
+  if (req.method === 'POST' && req.url === `/bot${token}`) {
+    let body = '';
+    req.on('data', chunk => {
+      body += chunk.toString();
+    });
+    req.on('end', () => {
+      try {
+        bot.processUpdate(JSON.parse(body));
+      } catch (e) {
+        console.error("Error parsing webhook:", e);
+      }
+      res.writeHead(200);
+      res.end();
+    });
+  } else {
+    // Jalur untuk UptimeRobot ngetuk pintu agar server nggak tidur
+    res.writeHead(200);
+    res.end("AYOWD Bot is ON and awake 24/7!");
+  }
+}).listen(Number(port));
 
 // Database memori sementara
 const userToTopic = new Map(); // Mencatat ID Member -> ID Topik
@@ -205,6 +227,6 @@ bot.on("message", async (msg) => {
   }
 });
 
-bot.on("polling_error", (error) => console.error("[POLLING ERROR]:", error.message));
+bot.on("webhook_error", (error) => console.error("[WEBHOOK ERROR]:", error.message));
 
-console.log("🚀 AYOWD Bot (Forum/Topics Mode + Auto Handoff) berjalan!");
+console.log("🚀 AYOWD Bot (Webhook Mode + Auto Handoff) berjalan!");
