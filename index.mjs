@@ -8,7 +8,12 @@ http.createServer((_req, res) => {
 }).listen(Number(port));
 
 const token = "8746210235:AAE4rJfSD6xOCa2LBB9gyZaRnZWRgUzytpM";
-const bot = new TelegramBot(token, { polling: true });
+const bot = new TelegramBot(token, { 
+  polling: { 
+    polling: true,
+    drop_pending_updates: true // <--- INI KUNCINYA
+  } 
+});
 
 // Database memori sementara
 const userToTopic = new Map(); // Mencatat ID Member -> ID Topik
