@@ -100,8 +100,34 @@ Gak usah banyak mikir, sikat penawaran eksklusif ini sekarang juga!
 bot.on("message", async (msg) => {
   const chatId = msg.chat.id;
   const userText = msg.text;
+  const adminId = process.env.ADMIN_ID; // Mengambil ID admin dari Render
+
   if (!userText || userText.startsWith("/")) return;
 
+  // 1. LOGIKA ADMIN MEMBALAS MANUAL (TAKEOVER)
+  if (adminId && chatId.toString() === adminId.toString()) {
+    // Mengecek apakah admin menggunakan fitur "Reply" pada pesan laporan bot
+    if (msg.reply_to_message && msg.reply_to_message.text) {
+      // Mengekstrak Chat ID member dari teks laporan
+      const match = msg.reply_to_message.text.match(/\(ID: (\d+)\)/);
+      if (match && match[1]) {
+        const targetUserId = match[1];
+        // Mengirimkan balasan manual ke member
+        bot.sendMessage(targetUserId, userText, { reply_markup: quickLinks });
+        bot.sendMessage(adminId, "✅ <i>Balasan manual berhasil dikirim ke member! (AI dihentikan untuk pesan ini)</i>", { parse_mode: "HTML" });
+        return; // Hentikan di sini, AI tidak perlu menjawab
+      }
+    }
+    return; // Jika admin hanya ngetik di bot tanpa me-reply, abaikan
+  }
+
+  // 2. LOGIKA FORWARD (PENYADAP) KE ADMIN
+  if (adminId && chatId.toString() !== adminId.toString()) {
+    const forwardText = `💬 <b>Pesan Masuk!</b>\nDari: ${msg.from?.first_name || "Member"} (ID: ${chatId})\nPesan: <i>${userText}</i>\n\n💡 <i>(Balas/Reply pesan ini untuk chat manual ke member)</i>`;
+    bot.sendMessage(adminId, forwardText, { parse_mode: "HTML" }).catch(err => console.error("Gagal forward:", err));
+  }
+
+  // 3. LOGIKA AI MENJAWAB (BERJALAN SEPERTI BIASA)
   try {
     bot.sendChatAction(chatId, "typing");
     const response = await fetch("https://api.mistral.ai/v1/chat/completions", {
@@ -118,15 +144,26 @@ bot.on("message", async (msg) => {
         ],
       }),
     });
+    
     const data = await response.json();
     if (data.error) throw new Error(data.error.message);
-    bot.sendMessage(chatId, data.choices[0].message.content, { reply_markup: quickLinks });
+    
+    const aiResponseText = data.choices[0].message.content;
+    
+    // Kirim balasan AI ke member
+    bot.sendMessage(chatId, aiResponseText, { reply_markup: quickLinks });
+
+    // Tembuskan balasan AI ke Admin agar Bosku bisa memantau kinerja AI
+    if (adminId && chatId.toString() !== adminId.toString()) {
+       bot.sendMessage(adminId, `🤖 <b>AI membalas:</b>\n${aiResponseText}`, { parse_mode: "HTML" });
+    }
+
   } catch (error) {
     console.error("Fetch Error:", error.message);
-    bot.sendMessage(chatId, "Mohon maaf Bosku, sistem sedang gangguan sebentar. Coba lagi ya!", { reply_markup: quickLinks });
+    bot.sendMessage(chatId, "Mohon maaf Bosku, sistem sedang antre sebentar. Coba ketik ulang ya!", { reply_markup: quickLinks });
   }
 });
 
 bot.on("polling_error", (error) => console.error("[POLLING ERROR]:", error.message));
 
-console.log("🚀 AYOWD Bot berjalan!");
+console.log("🚀 AYOWD Bot dengan Fitur Admin berjalan!");
