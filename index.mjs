@@ -1,5 +1,6 @@
 import http from "http";
 import TelegramBot from "node-telegram-bot-api";
+import fetch from "node-fetch"; // Pastikan sudah install: npm install node-fetch
 
 const port = process.env.PORT || 3000;
 http.createServer((_req, res) => {
@@ -11,7 +12,7 @@ const token = "8746210235:AAEWUolYwnnM535nonnqjAx5-2BmmEsu5cA";
 const bot = new TelegramBot(token, { 
   polling: { 
     polling: true,
-    drop_pending_updates: true // <--- INI KUNCINYA
+    drop_pending_updates: true 
   } 
 });
 
@@ -23,66 +24,57 @@ bot.setMyCommands([
 ]);
 
 // Database memori sementara
-const userToTopic = new Map(); // Mencatat ID Member -> ID Topik
-const topicToUser = new Map(); // Mencatat ID Topik -> ID Member
-const humanTakeover = new Set(); // SAKLAR: Mencatat member mana yang sedang dipegang Admin asli
+const userToTopic = new Map();
+const topicToUser = new Map();
+const humanTakeover = new Set(); 
+const chatHistory = new Map(); // <--- BARU: Memori percakapan agar bot ingat konteks
 
 // ==========================================
 // SYSTEM PROMPT MISTRAL (KARAKTER & ATURAN)
 // ==========================================
-const systemPrompt = `Kamu adalah asisten support VVIP dari AYOWD yang asyik, santai, dan solutif. Tugasmu menjawab pertanyaan umum dan kendala member.
+const systemPrompt = `Kamu adalah CS VVIP dari AYOWD. Gaya bahasa: asik, santai, meyakinkan, dan to the point. Sapa user dengan "Bosku".
 
-**Gaya Bahasa:**
-- Gunakan bahasa Indonesia sehari-hari yang kasual (misal: udah, nggak, aja, kok, sih, gampang).
-- Sapa pengguna dengan panggilan akrab "Bosku".
-- JANGAN pernah menggunakan bahasa kaku, formal, atau gaya robotik. Jangan pakai kata 'Anda'.
-
-**Aturan Format Teks (Wajib):**
-- Buat susunan balasan yang sangat rapi dan ringan dibaca di layar HP.
-- Pisahkan menjadi paragraf pendek (maksimal 2 baris) dan selalu berikan jarak (spasi kosong) antar paragraf.
-- Gunakan bullet points atau angka jika harus menjelaskan langkah-langkah.
-- Sisipkan 1 atau 2 emoji yang pas agar obrolan terasa ramah.
-
-**Aturan Eskalasi & Batasan (SANGAT PENTING):**
-- JAWAB HANYA berdasarkan "DATABASE JAWABAN AYOWD" di bawah.
-- JANGAN pernah mengarang informasi, link, atau promo sendiri.
-- JIKA ada member yang menanyakan kendala sistem, komplain deposit lambat, atau hal yang tidak ada di database: JANGAN berikan jawaban asal. Jawablah dengan santai bahwa kamu akan memanggil CS/Admin (manusia sungguhan) untuk masuk ke obrolan ini dan bantu mengeceknya, lalu suruh member menunggu sebentar.
+ATURAN KERAS (WAJIB DIPATUHI):
+1. JANGAN PERNAH mengulang sapaan (seperti "Halo Bosku", "Hai") jika percakapan sudah berlangsung. Langsung jawab intinya saja!
+2. JANGAN menggunakan format markdown bintang ganda (**teks**). Gunakan teks biasa yang rapi.
+3. INGAT KONTEKS PERCAKAPAN. Jika user bertanya kelanjutan dari pesan sebelumnya (misal "di mana itu?"), jawab sesuai obrolan terakhir.
+4. JANGAN mengarang info, promo, atau link yang tidak ada di database. 
+5. JIKA user komplain panjang, marah, atau kendala sistem yang tidak ada di database, katakan bahwa kamu akan memanggil CS asli untuk mengeceknya, lalu suruh menunggu.
 
 === DATABASE JAWABAN AYOWD ===
 
 1. CARA DAFTAR
 Trigger: cara daftar, buat akun, link daftar
-Jawaban: Gampang banget Bosku! Langsung klik link resmi kita: https://ayowdlogin.pages.dev/ — Isi data diri dan rekening yang valid. Begitu selesai, akun VVIP kamu otomatis aktif dan siap WD hari ini!
+Jawaban: Gampang banget! Langsung klik link resmi kita: https://ayowdlogin.pages.dev/ — Isi data diri dan rekening yang valid. Begitu selesai, akun otomatis aktif.
 
 2. MINIMAL DEPOSIT & WITHDRAW
 Trigger: min depo, minimal WD, depo berapa
-Jawaban: Di AYOWD modal receh bisa jadi sultan! Minimal Deposit: Rp 10.000 | Minimal Withdraw: Rp 50.000. Gas depo sekarang, mumpung winrate lagi max!
+Jawaban: Di AYOWD modal receh bisa jadi sultan! Minimal Deposit: Rp 10.000 | Minimal Withdraw: Rp 50.000. Gas depo sekarang!
 
-3. PROMO & BONUS
-Trigger: promo, bonus, garansi, rollingan
-Jawaban: AYOWD ngasih promo paling berani, Bosku! Rollingan Slot hingga 100 JUTA! Garansi Anti Rungkad: 100% modal kembali kalau depo pertama gagal WD. Bonus Depo awal dengan TO paling rendah. Klaim di menu promosi setelah deposit!
+3. PROMO, BONUS & RUNGKAD
+Trigger: promo, bonus, garansi, rollingan, kalah terus, rungkad
+Jawaban: Jangan emosi dulu, di AYOWD ada jaminan Garansi Anti Rungkad! Kalau depo pertama gagal WD, modal 100% kembali. Ada juga Rollingan Slot hingga 100 JUTA. Langsung aja cek menu "Promosi" di web setelah login buat klaim!
 
 4. DEPO/WD LAMA
 Trigger: depo belum masuk, WD lama, proses lelet
-Jawaban: Mohon maaf atas antriannya Bosku! Standar proses Depo 1-3 menit dan WD 3-5 menit. Tolong kirim Username dan Nominal kamu, langsung saya prioritaskan!
+Jawaban: Mohon maaf antriannya! Standar proses Depo 1-3 menit dan WD 3-5 menit. Tolong ketik Username dan Nominal kamu, langsung saya prioritaskan.
 
 5. LUPA PASSWORD / AKUN TERKUNCI
 Trigger: lupa sandi, akun lock, gak bisa login
-Jawaban: Tenang Bosku, jangan panik! Kirimkan: Username + Nama di Rekening + Nomor Rekening — langsung saya bantu reset detik ini juga!
+Jawaban: Tenang, jangan panik! Kirimkan: Username + Nama di Rekening + Nomor Rekening, biar langsung dibantu reset detik ini juga.
 
 6. REKENING / E-WALLET DEPOSIT
-Trigger: rek depo, nomor rekening, depo via dana/ovo/gopay
-Jawaban: Kita support semua bank dan e-wallet (BCA, BNI, BRI, Mandiri, DANA, OVO, Gopay, LinkAja)! Cek nomor rekening paling update di menu DEPOSIT setelah login.
+Trigger: rek depo, nomor rekening, depo via dana
+Jawaban: Kita support semua bank dan e-wallet (BCA, BNI, BRI, Mandiri, DANA, OVO, Gopay, dll). Cek nomor rekening paling update di menu DEPOSIT setelah login ya.
 
 7. POLA / INFO GAME GACOR
 Trigger: info gacor, pola, game bagus, RTP
-Jawaban: RTP AYOWD update tiap jam! Cek bocoran pola terakurat di: https://lite.link/ayowd99 — Sikat game yang persentasenya lagi merah merona!
+Jawaban: RTP AYOWD update tiap jam! Cek bocoran pola terakurat di: https://lite.link/ayowd99 — Sikat game yang persentasenya lagi merah merona.
 
 8. SAPAAN / HALO
 Trigger: halo, hai, hi, min, permisi
-Jawaban: Halo Bosku! CS VVIP AYOWD siap tempur 24 jam! Ada yang bisa dibantu?`;
+Jawaban: Halo Bosku! CS VVIP AYOWD siap tempur 24 jam. Ada yang bisa dibantu hari ini?`;
 
-// Menu tombol khusus untuk perintah /start
 const quickLinks = {
   inline_keyboard: [
     [
@@ -99,6 +91,10 @@ const quickLinks = {
 bot.onText(/\/start/, async (msg) => {
   const chatId = msg.chat.id;
   const firstName = msg.from?.first_name || "Bosku";
+  
+  // Reset memori kalau user ketik /start lagi
+  chatHistory.set(chatId, []);
+
   try {
     await bot.sendPhoto(chatId, "https://i.postimg.cc/HsR3ZV4Q/brand.png", {
       caption: `🔥 <b>JANGAN SAMPAI KETINGGALAN, ${firstName.toUpperCase()}!</b> 🔥\n\nIni bukan promo biasa. Member VIP yang lain udah pada ngerasain hasilnya, sekarang giliran lo yang ambil kendali!\n\nGak usah banyak mikir, sikat penawaran eksklusif ini sekarang juga!\n\n⚡️ <i>Ambil posisi lo sebelum kehabisan! Langsung gas klik tombol di bawah!</i> 👇`,
@@ -114,7 +110,6 @@ bot.onText(/\/start/, async (msg) => {
       },
     });
     
-    // Quick links dikirim SEKALI saja saat user mengetik /start
     await bot.sendMessage(chatId, "⬇️ Akses cepat link resmi AYOWD:", { reply_markup: quickLinks });
   } catch (error) {
     console.error("[ERROR /start]:", error.message);
@@ -136,9 +131,8 @@ bot.on("message", async (msg) => {
     if (threadId && topicToUser.has(threadId)) {
       const targetUserId = topicToUser.get(threadId);
 
-      // Fitur menghidupkan AI kembali
       if (userText === "/auto") {
-        humanTakeover.delete(targetUserId); // Hapus status admin
+        humanTakeover.delete(targetUserId); 
         bot.sendMessage(groupId, "🤖 <i>AI kembali AKTIF melayani member ini.</i>", { 
           message_thread_id: threadId, 
           parse_mode: "HTML" 
@@ -146,7 +140,6 @@ bot.on("message", async (msg) => {
         return;
       }
 
-      // Jika Admin balas biasa, Matikan AI untuk member ini
       if (!humanTakeover.has(targetUserId)) {
         humanTakeover.add(targetUserId);
         bot.sendMessage(groupId, "⚠️ <i>Admin mengambil alih. AI dihentikan sementara. Ketik <b>/auto</b> untuk menghidupkan AI kembali.</i>", { 
@@ -155,10 +148,9 @@ bot.on("message", async (msg) => {
         });
       }
 
-      // Kirim pesan admin ke member (TANPA tombol link agar obrolan natural)
       bot.sendMessage(targetUserId, userText);
     }
-    return; // Selesai urusan Admin
+    return; 
   }
 
   // ==========================================
@@ -168,7 +160,6 @@ bot.on("message", async (msg) => {
     try {
       let threadId = userToTopic.get(chatId);
 
-      // Buat topik baru kalau member belum punya kamar
       if (!threadId) {
         const topicName = `👤 ${msg.from?.first_name || "Member"} (${chatId})`;
         const newTopic = await bot.createForumTopic(groupId, topicName);
@@ -178,19 +169,35 @@ bot.on("message", async (msg) => {
         topicToUser.set(threadId, chatId);
       }
 
-      // Tembuskan pesan member ke kamar Admin
       await bot.sendMessage(groupId, `💬 <b>Member Ngetik:</b>\n${userText}`, { 
         message_thread_id: threadId,
         parse_mode: "HTML" 
       });
 
-      // CEK SAKLAR: Kalau Admin lagi ambil alih, AI disuruh minggir (Return)
       if (humanTakeover.has(chatId)) {
         return; 
       }
 
-      // KALAU AMAN, BIARKAN AI (MISTRAL) MENJAWAB
+      // --- LOGIK MEMORI PERCAKAPAN ---
+      if (!chatHistory.has(chatId)) {
+        chatHistory.set(chatId, []);
+      }
+      const history = chatHistory.get(chatId);
+      
+      // Masukkan chat user ke memori
+      history.push({ role: "user", content: userText });
+      
+      // Batasi memori hanya 10 pesan terakhir agar tidak berat
+      if (history.length > 10) history.shift();
+
       bot.sendChatAction(chatId, "typing");
+      
+      // Siapkan payload dengan memori
+      const apiMessages = [
+        { role: "system", content: systemPrompt },
+        ...history
+      ];
+
       const response = await fetch("https://api.mistral.ai/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -199,22 +206,23 @@ bot.on("message", async (msg) => {
         },
         body: JSON.stringify({
           model: "mistral-small-latest",
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userText },
-          ],
+          messages: apiMessages,
         }),
       });
       
       const data = await response.json();
       if (data.error) throw new Error(data.error.message);
       
-      const aiResponseText = data.choices[0].message.content;
+      let aiResponseText = data.choices[0].message.content;
       
-      // Kirim jawaban AI ke Member (TANPA tombol link terus-menerus)
+      // --- PEMBERSIH TEKS (Menghapus ** yang nyasar) ---
+      aiResponseText = aiResponseText.replace(/\*\*/g, ""); 
+      
+      // Simpan jawaban AI ke memori
+      history.push({ role: "assistant", content: aiResponseText });
+
       bot.sendMessage(chatId, aiResponseText);
 
-      // Laporan AI membalas ke Admin
       bot.sendMessage(groupId, `🤖 <b>AI Membalas:</b>\n${aiResponseText}`, { 
         message_thread_id: threadId,
         parse_mode: "HTML" 
@@ -222,7 +230,6 @@ bot.on("message", async (msg) => {
 
     } catch (error) {
       console.error("Error Processing:", error.message);
-      // Hapus quickLinks dari pesan error agar tetap rapi
       bot.sendMessage(chatId, "Waduh Bosku, server lagi agak padat nih antreannya. Boleh diketik ulang ya pesannya! 🙏");
     }
   }
@@ -230,4 +237,4 @@ bot.on("message", async (msg) => {
 
 bot.on("polling_error", (error) => console.error("[POLLING ERROR]:", error.message));
 
-console.log("🚀 AYOWD Bot (Forum/Topics Mode + Auto Handoff) berjalan!");
+console.log("🚀 AYOWD Bot (Smart Memory + Clean Text) berjalan!");
