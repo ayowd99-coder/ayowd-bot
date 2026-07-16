@@ -1,6 +1,5 @@
 import http from "http";
 import TelegramBot from "node-telegram-bot-api";
-import fetch from "node-fetch";
 
 const port = process.env.PORT || 3000;
 http.createServer((_req, res) => {
