@@ -1,6 +1,6 @@
 import http from "http";
 import TelegramBot from "node-telegram-bot-api";
-import fetch from "node-fetch"; // Pastikan sudah install: npm install node-fetch
+import fetch from "node-fetch";
 
 const port = process.env.PORT || 3000;
 http.createServer((_req, res) => {
@@ -16,28 +16,24 @@ const bot = new TelegramBot(token, {
   } 
 });
 
-// ==========================================
-// MENGAKTIFKAN TOMBOL MENU COMMAND (IKON ⌘)
-// ==========================================
 bot.setMyCommands([
   { command: "/start", description: "🔄 Mulai ulang Bot & Buka Menu" }
 ]);
 
-// Database memori sementara
 const userToTopic = new Map();
 const topicToUser = new Map();
 const humanTakeover = new Set(); 
-const chatHistory = new Map(); // <--- BARU: Memori percakapan agar bot ingat konteks
+const chatHistory = new Map(); 
 
 // ==========================================
-// SYSTEM PROMPT MISTRAL (KARAKTER & ATURAN)
+// SYSTEM PROMPT MISTRAL (KARAKTER PROVOKATIF & AGRESIF)
 // ==========================================
-const systemPrompt = `Kamu adalah CS VVIP dari AYOWD. Gaya bahasa: asik, santai, meyakinkan, dan to the point. Sapa user dengan "Bosku".
+const systemPrompt = `Kamu adalah CS VVIP dari AYOWD. Gaya bahasa: asik, santai, provokatif, meyakinkan, sedikit agresif untuk memancing tindakan (action), dan to the point. Sapa user dengan "Bosku".
 
 ATURAN KERAS (WAJIB DIPATUHI):
-1. JANGAN PERNAH mengulang sapaan (seperti "Halo Bosku", "Hai") jika percakapan sudah berlangsung. Langsung jawab intinya saja!
-2. JANGAN menggunakan format markdown bintang ganda (**teks**). Gunakan teks biasa yang rapi.
-3. INGAT KONTEKS PERCAKAPAN. Jika user bertanya kelanjutan dari pesan sebelumnya (misal "di mana itu?"), jawab sesuai obrolan terakhir.
+1. JANGAN PERNAH mengulang sapaan ("Halo Bosku", "Hai") di setiap chat. Sapaan HANYA untuk pesan pertama, sisanya langsung to the point!
+2. JANGAN menggunakan format markdown bintang ganda (**teks**). Gunakan HTML <b>teks</b> jika ingin menebalkan huruf.
+3. INGAT KONTEKS PERCAKAPAN.
 4. JANGAN mengarang info, promo, atau link yang tidak ada di database. 
 5. JIKA user komplain panjang, marah, atau kendala sistem yang tidak ada di database, katakan bahwa kamu akan memanggil CS asli untuk mengeceknya, lalu suruh menunggu.
 
@@ -91,8 +87,6 @@ const quickLinks = {
 bot.onText(/\/start/, async (msg) => {
   const chatId = msg.chat.id;
   const firstName = msg.from?.first_name || "Bosku";
-  
-  // Reset memori kalau user ketik /start lagi
   chatHistory.set(chatId, []);
 
   try {
@@ -109,7 +103,6 @@ bot.onText(/\/start/, async (msg) => {
         ],
       },
     });
-    
     await bot.sendMessage(chatId, "⬇️ Akses cepat link resmi AYOWD:", { reply_markup: quickLinks });
   } catch (error) {
     console.error("[ERROR /start]:", error.message);
@@ -123,9 +116,7 @@ bot.on("message", async (msg) => {
 
   if (!userText || userText.startsWith("/start")) return;
 
-  // ==========================================
-  // 1. AREA ADMIN (DI DALAM GRUP/TOPIK)
-  // ==========================================
+  // 1. AREA ADMIN
   if (groupId && chatId.toString() === groupId.toString()) {
     const threadId = msg.message_thread_id;
     if (threadId && topicToUser.has(threadId)) {
@@ -153,9 +144,7 @@ bot.on("message", async (msg) => {
     return; 
   }
 
-  // ==========================================
-  // 2. AREA MEMBER NGE-CHAT BOT
-  // ==========================================
+  // 2. AREA MEMBER
   if (groupId && chatId.toString() !== groupId.toString()) {
     try {
       let threadId = userToTopic.get(chatId);
@@ -174,25 +163,16 @@ bot.on("message", async (msg) => {
         parse_mode: "HTML" 
       });
 
-      if (humanTakeover.has(chatId)) {
-        return; 
-      }
+      if (humanTakeover.has(chatId)) return; 
 
-      // --- LOGIK MEMORI PERCAKAPAN ---
-      if (!chatHistory.has(chatId)) {
-        chatHistory.set(chatId, []);
-      }
+      if (!chatHistory.has(chatId)) chatHistory.set(chatId, []);
       const history = chatHistory.get(chatId);
       
-      // Masukkan chat user ke memori
       history.push({ role: "user", content: userText });
-      
-      // Batasi memori hanya 10 pesan terakhir agar tidak berat
       if (history.length > 10) history.shift();
 
       bot.sendChatAction(chatId, "typing");
       
-      // Siapkan payload dengan memori
       const apiMessages = [
         { role: "system", content: systemPrompt },
         ...history
@@ -215,13 +195,40 @@ bot.on("message", async (msg) => {
       
       let aiResponseText = data.choices[0].message.content;
       
-      // --- PEMBERSIH TEKS (Menghapus ** yang nyasar) ---
-      aiResponseText = aiResponseText.replace(/\*\*/g, ""); 
+      // --- PEMBERSIH TEKS & KONVERSI HTML BOLD ---
+      // 1. Ubah **teks** dari Mistral menjadi <b>teks</b> agar tampil tebal di Telegram
+      aiResponseText = aiResponseText.replace(/\*\*(.*?)\*\*/g, "<b>$1</b>");
+      // 2. Hapus sisa bintang tunggal yang bikin jelek
+      aiResponseText = aiResponseText.replace(/\*/g, ""); 
       
-      // Simpan jawaban AI ke memori
       history.push({ role: "assistant", content: aiResponseText });
 
-      bot.sendMessage(chatId, aiResponseText);
+      // --- LOGIK TOMBOL DINAMIS (MUNCUL OTOMATIS) ---
+      let dynamicMarkup = { inline_keyboard: [] };
+      const textLower = aiResponseText.toLowerCase();
+
+      // Kalau AI bahas RTP atau Pola
+      if (textLower.includes("rtp") || textLower.includes("pola") || textLower.includes("gacor")) {
+        dynamicMarkup.inline_keyboard.push([
+          { text: "📊 CEK RTP & POLA", url: "https://lite.link/ayowd99" }
+        ]);
+      }
+
+      // Kalau AI bahas pendaftaran, akun, atau login
+      if (textLower.includes("daftar") || textLower.includes("akun") || textLower.includes("login")) {
+        dynamicMarkup.inline_keyboard.push([
+          { text: "📝 DAFTAR / LOGIN", url: "https://ayowdlogin.pages.dev/" }
+        ]);
+      }
+
+      // Kalau kosong, jadikan undefined agar tidak mengirim tombol apa-apa
+      const finalReplyMarkup = dynamicMarkup.inline_keyboard.length > 0 ? dynamicMarkup : undefined;
+
+      // Kirim pesan dengan format HTML dan tombol dinamis
+      bot.sendMessage(chatId, aiResponseText, { 
+        parse_mode: "HTML",
+        reply_markup: finalReplyMarkup
+      });
 
       bot.sendMessage(groupId, `🤖 <b>AI Membalas:</b>\n${aiResponseText}`, { 
         message_thread_id: threadId,
@@ -237,4 +244,4 @@ bot.on("message", async (msg) => {
 
 bot.on("polling_error", (error) => console.error("[POLLING ERROR]:", error.message));
 
-console.log("🚀 AYOWD Bot (Smart Memory + Clean Text) berjalan!");
+console.log("🚀 AYOWD Bot (Smart Memory + Dynamic Buttons + Clean Text) berjalan!");
