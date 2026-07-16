@@ -7,7 +7,7 @@ http.createServer((_req, res) => {
   res.end("AYOWD Bot is running");
 }).listen(Number(port));
 
-const token = "8746210235:AAE4rJfSD6xOCa2LBB9gyZaRnZWRgUzytpM";
+const token = "8746210235:AAEWUolYwnnM535nonnqjAx5-2BmmEsu5cA";
 const bot = new TelegramBot(token, { 
   polling: { 
     polling: true,
