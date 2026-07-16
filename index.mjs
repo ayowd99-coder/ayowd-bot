@@ -25,15 +25,15 @@ const humanTakeover = new Set();
 const chatHistory = new Map(); 
 
 // ==========================================
-// SYSTEM PROMPT MISTRAL (KARAKTER PROVOKATIF & AGRESIF)
+// SYSTEM PROMPT MISTRAL (SUPER KETAT)
 // ==========================================
-const systemPrompt = `Kamu adalah CS VVIP dari AYOWD. Gaya bahasa: asik, santai, provokatif, meyakinkan, sedikit agresif untuk memancing tindakan (action), dan to the point. Sapa user dengan "Bosku".
+const systemPrompt = `Kamu adalah CS VVIP dari AYOWD. Gaya bahasa: asik, santai, provokatif, meyakinkan, sedikit agresif untuk memancing tindakan (action), dan to the point.
 
-ATURAN KERAS (WAJIB DIPATUHI):
-1. JANGAN PERNAH mengulang sapaan ("Halo Bosku", "Hai") di setiap chat. Sapaan HANYA untuk pesan pertama, sisanya langsung to the point!
-2. JANGAN menggunakan format markdown bintang ganda (**teks**). Gunakan HTML <b>teks</b> jika ingin menebalkan huruf.
-3. INGAT KONTEKS PERCAKAPAN.
-4. JANGAN mengarang info, promo, atau link yang tidak ada di database. 
+ATURAN KERAS (WAJIB DIPATUHI - JIKA MELANGGAR KAMU GAGAL):
+1. DILARANG MENGULANG SAPAAN! JANGAN katakan "Halo", "Hai", atau "Halo Bosku" berulang-ulang di tengah percakapan. Langsung to the point ke jawaban!
+2. JANGAN menggunakan format markdown seperti **teks** atau [teks](url). Gunakan teks biasa saja. Berikan URL langsung tanpa kurung siku.
+3. JANGAN mengarang info, promo, atau link yang tidak ada di database. 
+4. INGAT KONTEKS PERCAKAPAN SEBELUMNYA.
 5. JIKA user komplain panjang, marah, atau kendala sistem yang tidak ada di database, katakan bahwa kamu akan memanggil CS asli untuk mengeceknya, lalu suruh menunggu.
 
 === DATABASE JAWABAN AYOWD ===
@@ -194,36 +194,41 @@ bot.on("message", async (msg) => {
       
       let aiResponseText = data.choices[0].message.content;
       
-      // --- PEMBERSIH TEKS & KONVERSI HTML BOLD ---
-      // 1. Ubah **teks** dari Mistral menjadi <b>teks</b> agar tampil tebal di Telegram
-      aiResponseText = aiResponseText.replace(/\*\*(.*?)\*\*/g, "<b>$1</b>");
-      // 2. Hapus sisa bintang tunggal yang bikin jelek
-      aiResponseText = aiResponseText.replace(/\*/g, ""); 
+      // ==========================================
+      // FILTER SUPER BERSIH (MENGATASI KEBODOHAN AI)
+      // ==========================================
+      
+      // 1. Ubah format link [Teks](URL) jadi HTML beneran biar bisa diklik
+      aiResponseText = aiResponseText.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+      
+      // 2. Ubah format tebal **teks** jadi HTML beneran
+      aiResponseText = aiResponseText.replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
+      
+      // 3. Sapu bersih semua sisa bintang tunggal yang bikin kotor
+      aiResponseText = aiResponseText.replace(/\*/g, '');
+      
+      // ==========================================
       
       history.push({ role: "assistant", content: aiResponseText });
 
-      // --- LOGIK TOMBOL DINAMIS (MUNCUL OTOMATIS) ---
+      // LOGIK TOMBOL DINAMIS
       let dynamicMarkup = { inline_keyboard: [] };
       const textLower = aiResponseText.toLowerCase();
 
-      // Kalau AI bahas RTP atau Pola
-      if (textLower.includes("rtp") || textLower.includes("pola") || textLower.includes("gacor")) {
+      if (textLower.includes("rtp") || textLower.includes("pola") || textLower.includes("gacor") || textLower.includes("kalah")) {
         dynamicMarkup.inline_keyboard.push([
           { text: "📊 CEK RTP & POLA", url: "https://lite.link/ayowd99" }
         ]);
       }
 
-      // Kalau AI bahas pendaftaran, akun, atau login
       if (textLower.includes("daftar") || textLower.includes("akun") || textLower.includes("login")) {
         dynamicMarkup.inline_keyboard.push([
           { text: "📝 DAFTAR / LOGIN", url: "https://ayowdlogin.pages.dev/" }
         ]);
       }
 
-      // Kalau kosong, jadikan undefined agar tidak mengirim tombol apa-apa
       const finalReplyMarkup = dynamicMarkup.inline_keyboard.length > 0 ? dynamicMarkup : undefined;
 
-      // Kirim pesan dengan format HTML dan tombol dinamis
       bot.sendMessage(chatId, aiResponseText, { 
         parse_mode: "HTML",
         reply_markup: finalReplyMarkup
@@ -243,4 +248,4 @@ bot.on("message", async (msg) => {
 
 bot.on("polling_error", (error) => console.error("[POLLING ERROR]:", error.message));
 
-console.log("🚀 AYOWD Bot (Smart Memory + Dynamic Buttons + Clean Text) berjalan!");
+console.log("🚀 AYOWD Bot (Super Clean Mode) berjalan!");
