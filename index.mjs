@@ -7,8 +7,6 @@ http.createServer((_req, res) => {
   res.end("AYOWD Bot is running");
 }).listen(Number(port));
 
-// ⚠️ PENTING: Sangat disarankan untuk memindahkan Token ini ke dalam file .env 
-// seperti process.env.TELEGRAM_TOKEN agar lebih aman.
 const token = "8746210235:AAEWUolYwnnM535nonnqjAx5-2BmmEsu5cA";
 const bot = new TelegramBot(token, { 
   polling: { 
@@ -16,6 +14,13 @@ const bot = new TelegramBot(token, {
     drop_pending_updates: true // <--- INI KUNCINYA
   } 
 });
+
+// ==========================================
+// MENGAKTIFKAN TOMBOL MENU COMMAND (IKON ⌘)
+// ==========================================
+bot.setMyCommands([
+  { command: "/start", description: "🔄 Mulai ulang Bot & Buka Menu" }
+]);
 
 // Database memori sementara
 const userToTopic = new Map(); // Mencatat ID Member -> ID Topik
