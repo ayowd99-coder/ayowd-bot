@@ -7,6 +7,8 @@ http.createServer((_req, res) => {
   res.end("AYOWD Bot is running");
 }).listen(Number(port));
 
+// ⚠️ PENTING: Sangat disarankan untuk memindahkan Token ini ke dalam file .env 
+// seperti process.env.TELEGRAM_TOKEN agar lebih aman.
 const token = "8746210235:AAEWUolYwnnM535nonnqjAx5-2BmmEsu5cA";
 const bot = new TelegramBot(token, { 
   polling: { 
@@ -20,14 +22,26 @@ const userToTopic = new Map(); // Mencatat ID Member -> ID Topik
 const topicToUser = new Map(); // Mencatat ID Topik -> ID Member
 const humanTakeover = new Set(); // SAKLAR: Mencatat member mana yang sedang dipegang Admin asli
 
-const systemPrompt = `Kamu adalah CS VVIP dari AYOWD. Gaya bahasa: tegas, asik, provokatif, meyakinkan, dan cepat. Sapa user dengan "Bosku" atau "Member VVIP". Operasional 24 jam non-stop.
+// ==========================================
+// SYSTEM PROMPT MISTRAL (KARAKTER & ATURAN)
+// ==========================================
+const systemPrompt = `Kamu adalah asisten support VVIP dari AYOWD yang asyik, santai, dan solutif. Tugasmu menjawab pertanyaan umum dan kendala member.
 
-ATURAN KERAS:
-- SELALU jawab langsung sesuai isi pesan user. JANGAN hanya suruh ketik /start tanpa jawaban.
-- JANGAN mengarang info yang tidak ada di database di bawah ini.
-- JANGAN gunakan sapaan waktu (pagi/siang/malam).
-- JANGAN perkenalkan diri di setiap pesan.
-- Hanya jawab berdasarkan data berikut:
+**Gaya Bahasa:**
+- Gunakan bahasa Indonesia sehari-hari yang kasual (misal: udah, nggak, aja, kok, sih, gampang).
+- Sapa pengguna dengan panggilan akrab "Bosku".
+- JANGAN pernah menggunakan bahasa kaku, formal, atau gaya robotik. Jangan pakai kata 'Anda'.
+
+**Aturan Format Teks (Wajib):**
+- Buat susunan balasan yang sangat rapi dan ringan dibaca di layar HP.
+- Pisahkan menjadi paragraf pendek (maksimal 2 baris) dan selalu berikan jarak (spasi kosong) antar paragraf.
+- Gunakan bullet points atau angka jika harus menjelaskan langkah-langkah.
+- Sisipkan 1 atau 2 emoji yang pas agar obrolan terasa ramah.
+
+**Aturan Eskalasi & Batasan (SANGAT PENTING):**
+- JAWAB HANYA berdasarkan "DATABASE JAWABAN AYOWD" di bawah.
+- JANGAN pernah mengarang informasi, link, atau promo sendiri.
+- JIKA ada member yang menanyakan kendala sistem, komplain deposit lambat, atau hal yang tidak ada di database: JANGAN berikan jawaban asal. Jawablah dengan santai bahwa kamu akan memanggil CS/Admin (manusia sungguhan) untuk masuk ke obrolan ini dan bantu mengeceknya, lalu suruh member menunggu sebentar.
 
 === DATABASE JAWABAN AYOWD ===
 
@@ -63,6 +77,7 @@ Jawaban: RTP AYOWD update tiap jam! Cek bocoran pola terakurat di: https://lite.
 Trigger: halo, hai, hi, min, permisi
 Jawaban: Halo Bosku! CS VVIP AYOWD siap tempur 24 jam! Ada yang bisa dibantu?`;
 
+// Menu tombol khusus untuk perintah /start
 const quickLinks = {
   inline_keyboard: [
     [
@@ -93,6 +108,8 @@ bot.onText(/\/start/, async (msg) => {
         ],
       },
     });
+    
+    // Quick links dikirim SEKALI saja saat user mengetik /start
     await bot.sendMessage(chatId, "⬇️ Akses cepat link resmi AYOWD:", { reply_markup: quickLinks });
   } catch (error) {
     console.error("[ERROR /start]:", error.message);
@@ -133,8 +150,8 @@ bot.on("message", async (msg) => {
         });
       }
 
-      // Kirim pesan admin ke member
-      bot.sendMessage(targetUserId, userText, { reply_markup: quickLinks });
+      // Kirim pesan admin ke member (TANPA tombol link agar obrolan natural)
+      bot.sendMessage(targetUserId, userText);
     }
     return; // Selesai urusan Admin
   }
@@ -189,8 +206,8 @@ bot.on("message", async (msg) => {
       
       const aiResponseText = data.choices[0].message.content;
       
-      // Kirim jawaban AI ke Member
-      bot.sendMessage(chatId, aiResponseText, { reply_markup: quickLinks });
+      // Kirim jawaban AI ke Member (TANPA tombol link terus-menerus)
+      bot.sendMessage(chatId, aiResponseText);
 
       // Laporan AI membalas ke Admin
       bot.sendMessage(groupId, `🤖 <b>AI Membalas:</b>\n${aiResponseText}`, { 
@@ -200,7 +217,8 @@ bot.on("message", async (msg) => {
 
     } catch (error) {
       console.error("Error Processing:", error.message);
-      bot.sendMessage(chatId, "Mohon maaf Bosku, sistem sedang antre. Coba ketik ulang ya!", { reply_markup: quickLinks });
+      // Hapus quickLinks dari pesan error agar tetap rapi
+      bot.sendMessage(chatId, "Waduh Bosku, server lagi agak padat nih antreannya. Boleh diketik ulang ya pesannya! 🙏");
     }
   }
 });
