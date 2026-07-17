@@ -19,15 +19,15 @@ const topicToUser = new Map();
 const humanTakeover = new Set(); 
 const chatHistory = new Map(); 
 
-// SYSTEM PROMPT: FORMAL, PROFESIONAL, WAJIB KASIH LINK (ANTI-TOLAK)
-const systemPrompt = `Kamu adalah Customer Service VVIP dari AYOWD. Gaya bahasa: sangat sopan, formal, profesional, dan to the point.
+// SYSTEM PROMPT: FORMAL, PROFESIONAL, NATURAL (ANTI-KAKU / ANTI-LEBAY)
+const systemPrompt = `Kamu adalah Customer Service VVIP dari AYOWD. Gaya bahasa: sopan, profesional, natural (tidak kaku), dan to the point. JANGAN menggunakan bahasa yang terlalu kaku, lebay, atau seperti robot.
 
 ATURAN MUTLAK & HARAM DILANGGAR:
-1. WAJIB MEMBERIKAN LINK: Jika member meminta link (link alternatif, login, daftar, dll), kamu DILARANG KERAS MENOLAK! JANGAN PERNAH bilang "kami tidak menyediakan link".
-2. CARA MEMBERIKAN LINK: Kamu dilarang mengetik URL mentah (http/www) di dalam teks. Cukup gunakan kalimat wajib ini: "Tentu, silakan gunakan akses yang telah kami sediakan di bawah ini untuk kenyamanan Anda."
-3. DILARANG KERAS mengetik kata "tombol" atau menyuruh user mengklik sesuatu. Gunakan kata "akses".
-4. DILARANG meminta maaf jika tidak ada kendala/kesalahan dari pihak kita.
-5. DILARANG memberikan pertanyaan basa-basi di akhir pesan (seperti: "Ada yang bisa dibantu lagi?").
+1. DILARANG KERAS mengetik URL/Link (seperti http atau www) di dalam teks. 
+2. JIKA MEMBER MEMINTA LINK (link alternatif, login, daftar, dll), JANGAN MENOLAK! Jawab dengan singkat dan natural, contoh: "Baik, berikut adalah aksesnya." DILARANG menggunakan kata-kata kaku seperti "untuk kenyamanan/kemudahan Anda".
+3. DILARANG KERAS mengetik kata "tombol" atau menyuruh user mengklik sesuatu di bawah. (Sistem yang akan memunculkan menunya otomatis).
+4. DILARANG meminta maaf jika tidak ada kendala/kesalahan.
+5. DILARANG basa-basi atau bertele-tele di akhir pesan (seperti: "Ada yang bisa dibantu lagi?").
 6. JANGAN pernah menyalahkan atau meragukan member.
 
 === DATABASE JAWABAN ===
@@ -38,7 +38,7 @@ ATURAN MUTLAK & HARAM DILANGGAR:
 5. LUPA PASSWORD: Minta Username, Nama Rekening, & Nomor Rekening dengan sopan.
 6. RTP/POLA: RTP diupdate setiap jam dan persentasenya akurat.
 7. KENDALA AKSES / SITUS ERROR: Minta tangkapan layar (screenshot) dengan halus. Berikan panduan clear cache/VPN. Jika mentok, teruskan ke Tim IT.
-8. MINTA LINK ALTERNATIF: Langsung setujui dengan kalimat: "Tentu, silakan gunakan akses alternatif yang telah kami sediakan berikut ini."`;
+8. MINTA LINK ALTERNATIF: Jawab dengan singkat dan natural, misalnya: "Baik, berikut adalah akses alternatif yang bisa dicoba."`;
 
 bot.onText(/\/start/, async (msg) => {
   const chatId = msg.chat.id;
@@ -46,7 +46,7 @@ bot.onText(/\/start/, async (msg) => {
   chatHistory.set(chatId, []);
   try {
     await bot.sendPhoto(chatId, "https://i.postimg.cc/HsR3ZV4Q/brand.png", {
-      caption: `Selamat datang, Kak <b>${firstName.toUpperCase()}</b> di layanan VVIP AYOWD.\n\nKami siap melayani dan memberikan pengalaman terbaik untuk Anda.\n\n👇 <i>Silakan gunakan layanan cepat kami di bawah ini:</i>`,
+      caption: `Selamat datang, Kak <b>${firstName.toUpperCase()}</b> di layanan VVIP AYOWD.\n\nKami siap melayani dan memberikan pengalaman terbaik untuk Anda.\n\n👇 <i>Akses Cepat:</i>`,
       parse_mode: "HTML",
       reply_markup: {
         inline_keyboard: [
@@ -121,8 +121,8 @@ bot.on("message", async (msg) => {
         .replace(/https?:\/\/\S+/g, "")
         .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
         .replace(/\*/g, '')
-        .replace(/klik tombol.*/gi, "silakan gunakan akses berikut.")
-        .replace(/tombol/gi, "akses")
+        .replace(/klik tombol.*/gi, "")
+        .replace(/tombol/gi, "menu")
         .trim();
 
       history.push({ role: "assistant", content: aiResponseText });
@@ -163,9 +163,9 @@ bot.on("message", async (msg) => {
         dynamicMarkup.inline_keyboard.push([{ text: "🔗 LINK ALTERNATIF", url: "https://mez.ink/ayowd99" }]);
       }
 
-      // Menambahkan teks petunjuk panah HANYA jika ada tombol yang muncul
+      // Menambahkan teks petunjuk panah yang bersih, rapi, dan tidak lebay
       if (dynamicMarkup.inline_keyboard.length > 0) {
-        aiResponseText += "\n\n👇 <i>Silakan gunakan akses berikut untuk kemudahan Anda:</i>";
+        aiResponseText += "\n\n👇 <i>Akses Cepat:</i>";
       }
 
       bot.sendMessage(chatId, aiResponseText, { 
@@ -180,4 +180,4 @@ bot.on("message", async (msg) => {
 });
 
 bot.on("polling_error", (error) => console.error(error));
-console.log("🚀 AYOWD Bot (Anti-Nolak Link) siap melayani!");
+console.log("🚀 AYOWD Bot (Anti-Cringe & Natural) siap melayani!");
