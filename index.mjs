@@ -19,27 +19,26 @@ const topicToUser = new Map();
 const humanTakeover = new Set(); 
 const chatHistory = new Map(); 
 
-// SYSTEM PROMPT: FORMAL, PROFESIONAL, TO THE POINT, TANPA BASA-BASI LEBAY
+// SYSTEM PROMPT: FORMAL, PROFESIONAL, ANTI-TOLAK PERMINTAAN LINK
 const systemPrompt = `Kamu adalah Customer Service VVIP dari AYOWD. Gaya bahasa: sangat sopan, formal, profesional, dan to the point.
 
 ATURAN MUTLAK & HARAM DILANGGAR:
-1. DILARANG KERAS memberikan link/URL dalam bentuk apapun di dalam teks.
-2. DILARANG KERAS mengetik kata "tombol" atau menyuruh user mengklik sesuatu.
-3. DILARANG meminta maaf jika tidak ada kendala/kesalahan (Jangan pernah bilang "Mohon maaf atas pertanyaan ini").
-4. DILARANG KERAS memberikan kalimat pertanyaan basa-basi di akhir pesan (seperti: "Ada yang bisa dibantu lagi?", "Apakah ada hal lain?"). Cukup akhiri dengan ucapan terima kasih yang profesional.
-5. JANGAN pernah menyalahkan atau meragukan member.
+1. DILARANG KERAS mengetik URL/Link (seperti http atau www) di dalam teks. 
+2. JIKA MEMBER MEMINTA LINK (link alternatif, link daftar, rtp, dll), JANGAN PERNAH MENOLAK! Langsung setujui dengan sopan dan katakan: "Tentu, silakan gunakan akses berikut". (Sistem yang akan memunculkan tombolnya di bawah chat).
+3. DILARANG KERAS mengetik kata "tombol" atau menyuruh user mengklik sesuatu.
+4. DILARANG meminta maaf jika tidak ada kendala/kesalahan.
+5. DILARANG memberikan pertanyaan basa-basi di akhir pesan (seperti: "Ada yang bisa dibantu lagi?").
+6. JANGAN pernah menyalahkan atau meragukan member.
 
 === DATABASE JAWABAN ===
-1. CARA DAFTAR: Jelaskan dengan sopan bahwa pendaftaran sangat mudah. Minta member menyiapkan data diri dan rekening yang valid.
-2. MINIMAL DEPO/WD: Sampaikan dengan ramah bahwa Minimal Deposit Rp 10.000 dan Minimal Withdraw Rp 50.000.
-3. PROMO & BONUS: Jelaskan secara profesional tentang Garansi Anti Rungkad. Jika butuh info lebih lanjut, arahkan member untuk mengecek Info Promo, menghubungi LiveChat, atau WhatsApp kami.
-4. DEPO/WD LAMA: Sampaikan permohonan maaf atas keterlambatan. Jelaskan standar proses 1-3 menit. Minta Username & Nominal dengan sopan.
-5. LUPA PASSWORD: Minta Username, Nama Rekening, & Nomor Rekening dengan sopan agar bisa dibantu reset.
-6. RTP/POLA: Sampaikan dengan ramah bahwa RTP diupdate setiap jam dan persentasenya akurat.
-7. KENDALA AKSES / SITUS ERROR: 
-   - TAHAP 1: Mohon maaf dan minta tangkapan layar (screenshot) dengan halus.
-   - TAHAP 2: Berikan panduan clear cache atau VPN dengan sangat sopan.
-   - TAHAP 3 (Masih Gagal): Beritahu bahwa kendala diteruskan ke Tim IT. Mohon member menunggu dan mencoba akses alternatif.`;
+1. CARA DAFTAR: Jelaskan dengan sopan pendaftaran sangat mudah. Minta member menyiapkan data diri dan rekening yang valid.
+2. MINIMAL DEPO/WD: Minimal Deposit Rp 10.000 dan Minimal Withdraw Rp 50.000.
+3. PROMO & BONUS: Jelaskan secara profesional tentang Garansi Anti Rungkad. Arahkan member mengecek Info Promo, menghubungi LiveChat, atau WhatsApp.
+4. DEPO/WD LAMA: Sampaikan permohonan maaf atas keterlambatan. Proses 1-3 menit. Minta Username & Nominal.
+5. LUPA PASSWORD: Minta Username, Nama Rekening, & Nomor Rekening dengan sopan.
+6. RTP/POLA: RTP diupdate setiap jam dan persentasenya akurat.
+7. KENDALA AKSES / SITUS ERROR: Minta tangkapan layar (screenshot) dengan halus. Berikan panduan clear cache/VPN. Jika mentok, teruskan ke Tim IT.
+8. MINTA LINK ALTERNATIF: Jika member meminta link alternatif, jawab dengan sopan: "Tentu, silakan gunakan akses alternatif berikut ini untuk kenyamanan Anda."`;
 
 bot.onText(/\/start/, async (msg) => {
   const chatId = msg.chat.id;
@@ -131,20 +130,18 @@ bot.on("message", async (msg) => {
       let dynamicMarkup = { inline_keyboard: [] };
       const textLower = aiResponseText.toLowerCase();
       
-      // LOGIKA TOMBOL DINAMIS BARU
+      // LOGIKA TOMBOL DINAMIS
       
       // 1. Promo & LiveChat
       if (textLower.includes("promo") || textLower.includes("bonus") || textLower.includes("livechat") || textLower.includes("live chat")) {
         dynamicMarkup.inline_keyboard.push([
           { text: "🎁 INFO PROMO", url: "https://t.me/ayowdvip" },
-          // BOSKU: Ganti link di bawah ini dengan link LiveChat asli AYOWD
           { text: "💬 LIVECHAT", url: "https://tawk.to/LinkLiveChatBosku" } 
         ]);
       }
 
       // 2. WhatsApp
-      if (textLower.includes("whatsapp")) {
-        // BOSKU: Ganti link di bawah ini dengan link WA asli AYOWD
+      if (textLower.includes("whatsapp") || textLower.includes("wa")) {
         dynamicMarkup.inline_keyboard.push([{ text: "🟢 WHATSAPP", url: "https://wa.me/6281234567890" }]); 
       }
 
@@ -161,9 +158,9 @@ bot.on("message", async (msg) => {
         ]);
       }
 
-      // 5. Solusi Akses IT
-      if (textLower.includes("vpn") || textLower.includes("cache") || textLower.includes("browser") || textLower.includes("it") || textLower.includes("server") || textLower.includes("alternatif") || textLower.includes("tunggu") || textLower.includes("menunggu")) {
-        dynamicMarkup.inline_keyboard.push([{ text: "🔗 COBA LINK ALTERNATIF INI", url: "https://mez.ink/ayowd99" }]);
+      // 5. Solusi Akses IT & Link Alternatif
+      if (textLower.includes("alternatif") || textLower.includes("vpn") || textLower.includes("cache") || textLower.includes("browser") || textLower.includes("it") || textLower.includes("server") || textLower.includes("tunggu") || textLower.includes("menunggu")) {
+        dynamicMarkup.inline_keyboard.push([{ text: "🔗 LINK ALTERNATIF", url: "https://mez.ink/ayowd99" }]);
       }
 
       // Menambahkan teks petunjuk panah HANYA jika ada tombol yang muncul
@@ -183,4 +180,4 @@ bot.on("message", async (msg) => {
 });
 
 bot.on("polling_error", (error) => console.error(error));
-console.log("🚀 AYOWD Bot (Tombol Promo & WA Aktif) siap melayani!");
+console.log("🚀 AYOWD Bot (Alur Link Fix) siap melayani!");
