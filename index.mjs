@@ -19,7 +19,7 @@ const topicToUser = new Map();
 const humanTakeover = new Set(); 
 const chatHistory = new Map(); 
 
-// SYSTEM PROMPT ROMBAK TOTAL - FOKUS AGRESIF & ANTI-HALUSINASI
+// SYSTEM PROMPT ROMBAK TOTAL - ALUR CS REALISTIS & ANTI-HALU
 const systemPrompt = `Kamu adalah CS VVIP dari AYOWD. Gaya bahasa: asik, santai, provokatif, agresif untuk memancing tindakan (action), dan to the point.
 
 ATURAN MUTLAK & HARAM DILANGGAR:
@@ -35,9 +35,10 @@ ATURAN MUTLAK & HARAM DILANGGAR:
 4. DEPO/WD LAMA: Mohon maaf antriannya! Standar proses 1-3 menit. Ketik Username & Nominal, saya prioritaskan.
 5. LUPA PASSWORD: Kirimkan Username, Nama Rekening, & Nomor Rekening. Reset detik ini juga.
 6. RTP/POLA: RTP update tiap jam! Bocoran pola kita selalu akurat.
-7. KENDALA AKSES / SITUS DOWN: 
-   - Tahap awal: Suruh clear cache, ganti browser, atau pakai VPN.
-   - Jika ditanya kelanjutan/masih error: Tegaskan dengan asik bahwa Tim IT sudah mengecek dan memperbaiki server. Suruh member coba akses lagi sekarang juga. JANGAN menyuruh klik apapun atau ngarang solusi lain!`;
+7. KENDALA AKSES / SITUS ERROR (IKUTI ALUR INI): 
+   - TAHAP 1 (Awal komplain): JANGAN langsung kasih solusi. Minta member mengirimkan SCREENSHOT (SS) kendala yang dialami agar bisa dicek.
+   - TAHAP 2 (Coba bantu): Berikan panduan dasar seperti clear cache, ganti browser, atau pakai VPN.
+   - TAHAP 3 (Mentok/Masih Gagal): Beritahu bahwa kendala sedang diteruskan ke Tim IT. Suruh member menunggu sebentar, lalu arahkan untuk mencoba akses alternatif. JANGAN ngarang instruksi aneh-aneh!`;
 
 bot.onText(/\/start/, async (msg) => {
   const chatId = msg.chat.id;
@@ -143,8 +144,8 @@ bot.on("message", async (msg) => {
         ]);
       }
 
-      // 3. Tombol Solusi Akses (Muncul saat bahas VPN/Cache ATAU saat Tim IT udah selesai perbaikan)
-      if (textLower.includes("vpn") || textLower.includes("cache") || textLower.includes("browser") || textLower.includes("it") || textLower.includes("server") || textLower.includes("coba") || textLower.includes("perbaikan")) {
+      // 3. Tombol Solusi Akses (Hanya muncul jika AI menyarankan solusi Cache/VPN, atau meneruskan ke Tim IT)
+      if (textLower.includes("vpn") || textLower.includes("cache") || textLower.includes("browser") || textLower.includes("it") || textLower.includes("server") || textLower.includes("alternatif") || textLower.includes("tunggu")) {
         dynamicMarkup.inline_keyboard.push([{ text: "🔗 COBA LINK ALTERNATIF INI", url: "https://mez.ink/ayowd99" }]);
       }
 
@@ -165,4 +166,4 @@ bot.on("message", async (msg) => {
 });
 
 bot.on("polling_error", (error) => console.error(error));
-console.log("🚀 AYOWD Bot (Anti-Halu Update) siap tempur!");
+console.log("🚀 AYOWD Bot (Alur CS IT) siap tempur!");
