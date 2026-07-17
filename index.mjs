@@ -45,7 +45,7 @@ bot.onText(/\/start/, async (msg) => {
   const firstName = msg.from?.first_name || "Kak";
   chatHistory.set(chatId, []);
   try {
-    await bot.sendPhoto(chatId, "https://i.postimg.cc/pdqCNbzG/baner90.png", {
+    await bot.sendPhoto(chatId, "https://i.imgur.com/2Y45z6H.png", {
       caption: `Halo Kak <b>${firstName.toUpperCase()}</b>, selamat datang di layanan Customer Service AYOWD.\n\nAda yang bisa kami bantu hari ini?\n\n👇 <i>Akses Cepat:</i>`,
       parse_mode: "HTML",
       reply_markup: {
