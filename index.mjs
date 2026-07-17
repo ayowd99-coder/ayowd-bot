@@ -20,7 +20,7 @@ const humanTakeover = new Set();
 const chatHistory = new Map(); 
 
 // SYSTEM PROMPT: FORMAL, PROFESIONAL, NATURAL (ANTI-KAKU / ANTI-LEBAY)
-const systemPrompt = `Kamu adalah Customer Service VVIP dari AYOWD. Gaya bahasa: sopan, profesional, natural (tidak kaku), dan to the point. JANGAN menggunakan bahasa yang terlalu kaku, lebay, atau seperti robot.
+const systemPrompt = `Kamu adalah Customer Service dari AYOWD. Gaya bahasa: sopan, profesional, natural (tidak kaku), dan to the point. JANGAN menggunakan bahasa yang terlalu kaku, lebay, atau seperti robot.
 
 ATURAN MUTLAK & HARAM DILANGGAR:
 1. DILARANG KERAS mengetik URL/Link (seperti http atau www) di dalam teks. 
@@ -42,11 +42,11 @@ ATURAN MUTLAK & HARAM DILANGGAR:
 
 bot.onText(/\/start/, async (msg) => {
   const chatId = msg.chat.id;
-  const firstName = msg.from?.first_name || "Pelanggan Setia";
+  const firstName = msg.from?.first_name || "Kak";
   chatHistory.set(chatId, []);
   try {
     await bot.sendPhoto(chatId, "https://i.postimg.cc/HsR3ZV4Q/brand.png", {
-      caption: `Selamat datang, Kak <b>${firstName.toUpperCase()}</b> di layanan VVIP AYOWD.\n\nKami siap melayani dan memberikan pengalaman terbaik untuk Anda.\n\n👇 <i>Akses Cepat:</i>`,
+      caption: `Halo Kak <b>${firstName.toUpperCase()}</b>, selamat datang di layanan Customer Service AYOWD.\n\nAda yang bisa kami bantu hari ini?\n\n👇 <i>Akses Cepat:</i>`,
       parse_mode: "HTML",
       reply_markup: {
         inline_keyboard: [
@@ -180,4 +180,4 @@ bot.on("message", async (msg) => {
 });
 
 bot.on("polling_error", (error) => console.error(error));
-console.log("🚀 AYOWD Bot (Anti-Cringe & Natural) siap melayani!");
+console.log("🚀 AYOWD Bot (Start Greeting Diperbarui) siap melayani!");
