@@ -34,7 +34,9 @@ ATURAN KERAS:
 4. DEPO/WD LAMA: Mohon maaf antriannya! Standar proses 1-3 menit. Ketik Username & Nominal kamu, saya prioritaskan.
 5. LUPA PASSWORD: Kirimkan Username, Nama Rekening, & Nomor Rekening. Saya bantu reset detik ini juga.
 6. RTP/POLA: RTP update tiap jam! Cek bocoran pola terakurat, langsung klik tombol di bawah.
-7. LINK ERROR / SITUS DOWN / BLOKIR (TIDAK BISA AKSES): Suruh member clear cache, ganti browser, atau pakai VPN. Lalu suruh klik tombol di bawah untuk akses tanpa kendala, JANGAN ketik kata "LINK ALTERNATIF" di jawabanmu.`;
+7. LINK ERROR / KENDALA AKSES: 
+   - TAHAP 1 (Baru komplain): Suruh member clear cache, ganti browser, atau pakai VPN. Lalu suruh klik tombol di bawah untuk akses.
+   - TAHAP 2 (Jika member bilang SUDAH DICOBA tapi MASIH GAGAL/ERROR): Katakan dengan tegas: "Mohon ditunggu sebentar ya Bosku, biar tim IT kami lakukan pengecekan server sekarang juga!" (JANGAN suruh pakai VPN lagi).`;
 
 bot.onText(/\/start/, async (msg) => {
   const chatId = msg.chat.id;
@@ -140,8 +142,8 @@ bot.on("message", async (msg) => {
         ]);
       }
 
-      // 3. Tombol Link Alternatif (Anti-Blokir)
-      if (textLower.includes("alternatif") || textLower.includes("error") || textLower.includes("blokir") || textLower.includes("down") || textLower.includes("nawala") || textLower.includes("akses") || textLower.includes("vpn") || textLower.includes("cache")) {
+      // 3. Tombol Link Alternatif (Anti-Blokir) - TIDAK MUNCUL KALAU SEDANG DICEK TIM IT
+      if ((textLower.includes("alternatif") || textLower.includes("error") || textLower.includes("blokir") || textLower.includes("down") || textLower.includes("nawala") || textLower.includes("akses") || textLower.includes("vpn") || textLower.includes("cache")) && !textLower.includes("dicek") && !textLower.includes("pengecekan") && !textLower.includes("tim it")) {
         dynamicMarkup.inline_keyboard.push([{ text: "🔗 LINK ALTERNATIF (ANTI-BLOKIR)", url: "https://mez.ink/ayowd99" }]);
       }
 
@@ -157,4 +159,4 @@ bot.on("message", async (msg) => {
 });
 
 bot.on("polling_error", (error) => console.error(error));
-console.log("🚀 AYOWD Bot (Tombol Dinamis & Anti-Spam Teks) berjalan sempurna!");
+console.log("🚀 AYOWD Bot (Tombol Dinamis & Alur IT Cerdas) berjalan sempurna!");
