@@ -22,17 +22,19 @@ const chatHistory = new Map();
 // SYSTEM PROMPT KETAT - DILARANG TULIS LINK DI TEKS
 const systemPrompt = `Kamu adalah CS VVIP dari AYOWD. Gaya bahasa: asik, santai, provokatif, agresif untuk memancing tindakan (action), dan to the point.
 ATURAN KERAS:
-1. DILARANG MENULIS LINK/URL DI DALAM TEKS! Arahkan user ke tombol di bawah.
+1. DILARANG KERAS MENULIS LINK/URL BENTUK APAPUN DI DALAM TEKS! Selalu suruh user "Klik tombol di bawah".
 2. JANGAN mengulang sapaan. Langsung to the point ke jawaban.
 3. JANGAN gunakan markdown ** atau [link](url). Gunakan teks biasa atau <b>teks</b> untuk menebalkan.
 4. JANGAN mengarang info.
+
 === DATABASE ===
 1. CARA DAFTAR: Gampang banget! Klik tombol DAFTAR di bawah. Isi data diri & rekening valid, akun langsung aktif.
 2. MINIMAL DEPO/WD: Modal receh bisa jadi sultan! Minimal Deposit 10rb, Minimal WD 50rb. Gas depo sekarang!
 3. PROMO/RUNGKAD: Jangan emosi! Ada Garansi Anti Rungkad, depo pertama gagal WD modal 100% kembali. Cek menu Promosi di web!
 4. DEPO/WD LAMA: Mohon maaf antriannya! Standar proses 1-3 menit. Ketik Username & Nominal kamu, saya prioritaskan.
 5. LUPA PASSWORD: Kirimkan Username, Nama Rekening, & Nomor Rekening. Saya bantu reset detik ini juga.
-6. RTP/POLA: RTP update tiap jam! Cek bocoran pola terakurat di tombol bawah.`;
+6. RTP/POLA: RTP update tiap jam! Cek bocoran pola terakurat klik tombol RTP di bawah.
+7. LINK ERROR / SITUS DOWN / BLOKIR (TIDAK BISA AKSES): Suruh member clear cache, ganti browser, atau pakai VPN. Lalu arahkan untuk klik tombol "LINK ALTERNATIF" di bawah agar bisa masuk tanpa kendala.`;
 
 bot.onText(/\/start/, async (msg) => {
   const chatId = msg.chat.id;
@@ -110,17 +112,30 @@ bot.on("message", async (msg) => {
       const data = await response.json();
       let aiResponseText = data.choices[0].message.content;
       
-      // Filter link & bold
+      // Filter link & bold (Sapu bersih kalau AI bandel masukin link)
       aiResponseText = aiResponseText.replace(/https?:\/\/\S+/g, "").replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\*/g, '');
       history.push({ role: "assistant", content: aiResponseText });
 
       let dynamicMarkup = { inline_keyboard: [] };
       const textLower = aiResponseText.toLowerCase();
+      
+      // LOGIKA TOMBOL OTOMATIS:
+      // 1. Tombol RTP & Pola
       if (textLower.includes("rtp") || textLower.includes("pola") || textLower.includes("gacor") || textLower.includes("kalah")) {
         dynamicMarkup.inline_keyboard.push([{ text: "📊 CEK RTP & POLA", url: "https://lite.link/ayowd99" }]);
       }
-      if (textLower.includes("daftar") || textLower.includes("akun") || textLower.includes("login") || textLower.includes("depo")) {
-        dynamicMarkup.inline_keyboard.push([{ text: "📝 DAFTAR / LOGIN", url: "https://ayowdlogin.pages.dev/" }]);
+      
+      // 2. Tombol Daftar & Login (Muncul berdampingan)
+      if (textLower.includes("daftar") || textLower.includes("akun") || textLower.includes("login") || textLower.includes("depo") || textLower.includes("masuk")) {
+        dynamicMarkup.inline_keyboard.push([
+          { text: "📝 DAFTAR", url: "https://ayowdlogin.pages.dev/" },
+          { text: "🔐 LOGIN", url: "https://mez.ink/ayowd99" }
+        ]);
+      }
+
+      // 3. Tombol Link Alternatif (Kalau komplain link error)
+      if (textLower.includes("alternatif") || textLower.includes("error") || textLower.includes("blokir") || textLower.includes("down") || textLower.includes("nawala") || textLower.includes("akses")) {
+        dynamicMarkup.inline_keyboard.push([{ text: "🔗 LINK ALTERNATIF (ANTI-BLOKIR)", url: "https://mez.ink/ayowd99" }]);
       }
 
       bot.sendMessage(chatId, aiResponseText, { 
@@ -128,9 +143,11 @@ bot.on("message", async (msg) => {
         reply_markup: dynamicMarkup.inline_keyboard.length > 0 ? dynamicMarkup : undefined
       });
       bot.sendMessage(groupId, `🤖 <b>AI Membalas:</b>\n${aiResponseText}`, { message_thread_id: threadId, parse_mode: "HTML" });
-    } catch (error) { bot.sendMessage(chatId, "Waduh Bosku, server lagi agak padat nih. Bisa diulang pesannya? 🙏"); }
+    } catch (error) { 
+      bot.sendMessage(chatId, "Waduh Bosku, server lagi agak padat nih. Bisa diulang pesannya? 🙏"); 
+    }
   }
 });
 
 bot.on("polling_error", (error) => console.error(error));
-console.log("🚀 AYOWD Bot (Lengkap & Anti-Link) berjalan!");
+console.log("🚀 AYOWD Bot (Tombol Dinamis & Anti-Link) berjalan sempurna!");
