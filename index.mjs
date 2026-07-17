@@ -136,7 +136,7 @@ bot.on("message", async (msg) => {
       if (textLower.includes("promo") || textLower.includes("bonus") || textLower.includes("livechat") || textLower.includes("live chat")) {
         dynamicMarkup.inline_keyboard.push([
           { text: "🎁 INFO PROMO", url: "https://t.me/ayowdvip" },
-          { text: "💬 LIVECHAT", url: "https://tawk.to/LinkLiveChatBosku" } 
+          { text: "💬 LIVECHAT", url: "https://ayo-wd.xyz/loginvip" } 
         ]);
       }
 
@@ -147,13 +147,13 @@ bot.on("message", async (msg) => {
 
       // 3. RTP & Pola
       if (textLower.includes("rtp") || textLower.includes("pola") || textLower.includes("bocoran")) {
-        dynamicMarkup.inline_keyboard.push([{ text: "📊 CEK RTP & POLA", url: "https://lite.link/ayowd99" }]);
+        dynamicMarkup.inline_keyboard.push([{ text: "📊 CEK RTP & POLA", url: "https://ayo-wd.xyz/loginvip" }]);
       }
       
       // 4. Daftar & Login
       if (textLower.includes("daftar") || textLower.includes("akun") || textLower.includes("depo") || textLower.includes("aktif")) {
         dynamicMarkup.inline_keyboard.push([
-          { text: "📝 DAFTAR", url: "https://ayowdlogin.pages.dev/" },
+          { text: "📝 DAFTAR", url: "https://ayo-wd.xyz/loginvip" },
           { text: "🔐 LOGIN", url: "https://mez.ink/ayowd99" }
         ]);
       }
