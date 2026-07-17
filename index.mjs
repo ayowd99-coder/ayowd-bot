@@ -50,7 +50,7 @@ bot.onText(/\/start/, async (msg) => {
       parse_mode: "HTML",
       reply_markup: {
         inline_keyboard: [
-          [{ text: "🎯 MASUK KE SITUS", url: "https://ayowdlogin.pages.dev/" }],
+          [{ text: "🎯 MASUK KE SITUS", url: "https://ayo-wd.xyz/loginvip" }],
           [{ text: "📝 DAFTAR SEKARANG", url: "https://lite.link/ayowd99" }, { text: "🔐 LOGIN", url: "https://mez.ink/ayowd99" }],
         ],
       },
