@@ -19,26 +19,27 @@ const topicToUser = new Map();
 const humanTakeover = new Set(); 
 const chatHistory = new Map(); 
 
-// SYSTEM PROMPT ROMBAK TOTAL - ALUR CS FORMAL, RAMAH, & SOPAN
-const systemPrompt = `Kamu adalah Customer Service VVIP dari AYOWD. Gaya bahasa: sangat sopan, formal, ramah, profesional, empati, dan sangat membantu.
+// SYSTEM PROMPT: FORMAL, PROFESIONAL, TO THE POINT, TANPA BASA-BASI LEBAY
+const systemPrompt = `Kamu adalah Customer Service VVIP dari AYOWD. Gaya bahasa: sangat sopan, formal, profesional, dan to the point.
 
 ATURAN MUTLAK & HARAM DILANGGAR:
 1. DILARANG KERAS memberikan link/URL dalam bentuk apapun di dalam teks.
-2. DILARANG KERAS mengetik kata "tombol", "klik di bawah", atau menyuruh user mengklik sesuatu. Biarkan sistem yang mengurusnya!
-3. DILARANG mengarang posisi fitur atau menu di website.
-4. DILARANG KERAS menggunakan kata-kata kasar, agresif, atau menantang. JANGAN pernah menyalahkan atau meragukan member.
+2. DILARANG KERAS mengetik kata "tombol" atau menyuruh user mengklik sesuatu.
+3. DILARANG meminta maaf jika tidak ada kendala/kesalahan (Jangan pernah bilang "Mohon maaf atas pertanyaan ini").
+4. DILARANG KERAS memberikan kalimat pertanyaan basa-basi di akhir pesan (seperti: "Ada yang bisa dibantu lagi?", "Apakah ada hal lain?"). Cukup akhiri dengan ucapan terima kasih yang profesional.
+5. JANGAN pernah menyalahkan atau meragukan member.
 
 === DATABASE JAWABAN ===
 1. CARA DAFTAR: Jelaskan dengan sopan bahwa pendaftaran sangat mudah. Minta member menyiapkan data diri dan rekening yang valid.
 2. MINIMAL DEPO/WD: Sampaikan dengan ramah bahwa Minimal Deposit Rp 10.000 dan Minimal Withdraw Rp 50.000.
-3. PROMO: Jelaskan secara profesional tentang Garansi Anti Rungkad (depo pertama gagal WD modal 100% kembali).
-4. DEPO/WD LAMA: Sampaikan permohonan maaf yang tulus atas keterlambatan. Jelaskan standar proses 1-3 menit. Minta Username & Nominal dengan sopan untuk dibantu prioritaskan.
-5. LUPA PASSWORD: Minta Username, Nama Rekening, & Nomor Rekening dengan sopan agar bisa segera dibantu reset.
-6. RTP/POLA: Sampaikan dengan ramah bahwa RTP diupdate setiap jam dan persentasenya sangat akurat.
-7. KENDALA AKSES / SITUS ERROR (IKUTI ALUR INI): 
-   - TAHAP 1 (Awal komplain): Sampaikan permohonan maaf atas ketidaknyamanan. Minta member mengirimkan tangkapan layar (screenshot) kendala dengan bahasa yang sangat halus, contoh: "Mohon maaf atas ketidaknyamanannya. Boleh mohon kesediaannya untuk mengirimkan tangkapan layar (screenshot) kendalanya agar dapat kami bantu cek lebih lanjut?"
-   - TAHAP 2 (Coba bantu): Berikan panduan dasar (clear cache, ganti browser, atau menggunakan VPN) dengan bahasa yang runtut dan sangat sopan.
-   - TAHAP 3 (Mentok/Masih Gagal): Sampaikan permohonan maaf kembali. Beritahu bahwa kendala sedang diteruskan ke Tim IT kami untuk pengecekan. Mohon member berkenan menunggu sebentar dan mencoba akses alternatif.`;
+3. PROMO & BONUS: Jelaskan secara profesional tentang Garansi Anti Rungkad. Jika butuh info lebih lanjut, arahkan member untuk mengecek Info Promo, menghubungi LiveChat, atau WhatsApp kami.
+4. DEPO/WD LAMA: Sampaikan permohonan maaf atas keterlambatan. Jelaskan standar proses 1-3 menit. Minta Username & Nominal dengan sopan.
+5. LUPA PASSWORD: Minta Username, Nama Rekening, & Nomor Rekening dengan sopan agar bisa dibantu reset.
+6. RTP/POLA: Sampaikan dengan ramah bahwa RTP diupdate setiap jam dan persentasenya akurat.
+7. KENDALA AKSES / SITUS ERROR: 
+   - TAHAP 1: Mohon maaf dan minta tangkapan layar (screenshot) dengan halus.
+   - TAHAP 2: Berikan panduan clear cache atau VPN dengan sangat sopan.
+   - TAHAP 3 (Masih Gagal): Beritahu bahwa kendala diteruskan ke Tim IT. Mohon member menunggu dan mencoba akses alternatif.`;
 
 bot.onText(/\/start/, async (msg) => {
   const chatId = msg.chat.id;
@@ -116,7 +117,7 @@ bot.on("message", async (msg) => {
       const data = await response.json();
       let aiResponseText = data.choices[0].message.content;
       
-      // Filter Sapu Bersih (Mencegah AI bandel ngasih link atau ngomongin tombol)
+      // Filter Sapu Bersih (Anti-Link & Anti-Tombol)
       aiResponseText = aiResponseText
         .replace(/https?:\/\/\S+/g, "")
         .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
@@ -130,13 +131,29 @@ bot.on("message", async (msg) => {
       let dynamicMarkup = { inline_keyboard: [] };
       const textLower = aiResponseText.toLowerCase();
       
-      // LOGIKA TOMBOL OTOMATIS BERDASARKAN KONTEKS JAWABAN AI
-      // 1. Tombol RTP & Pola
+      // LOGIKA TOMBOL DINAMIS BARU
+      
+      // 1. Promo & LiveChat
+      if (textLower.includes("promo") || textLower.includes("bonus") || textLower.includes("livechat") || textLower.includes("live chat")) {
+        dynamicMarkup.inline_keyboard.push([
+          { text: "🎁 INFO PROMO", url: "https://t.me/ayowdvip" },
+          // BOSKU: Ganti link di bawah ini dengan link LiveChat asli AYOWD
+          { text: "💬 LIVECHAT", url: "https://tawk.to/LinkLiveChatBosku" } 
+        ]);
+      }
+
+      // 2. WhatsApp
+      if (textLower.includes("whatsapp")) {
+        // BOSKU: Ganti link di bawah ini dengan link WA asli AYOWD
+        dynamicMarkup.inline_keyboard.push([{ text: "🟢 WHATSAPP", url: "https://wa.me/6281234567890" }]); 
+      }
+
+      // 3. RTP & Pola
       if (textLower.includes("rtp") || textLower.includes("pola") || textLower.includes("bocoran")) {
         dynamicMarkup.inline_keyboard.push([{ text: "📊 CEK RTP & POLA", url: "https://lite.link/ayowd99" }]);
       }
       
-      // 2. Tombol Daftar & Login (Biasa)
+      // 4. Daftar & Login
       if (textLower.includes("daftar") || textLower.includes("akun") || textLower.includes("depo") || textLower.includes("aktif")) {
         dynamicMarkup.inline_keyboard.push([
           { text: "📝 DAFTAR", url: "https://ayowdlogin.pages.dev/" },
@@ -144,12 +161,12 @@ bot.on("message", async (msg) => {
         ]);
       }
 
-      // 3. Tombol Solusi Akses (Hanya muncul jika AI menyarankan solusi Cache/VPN, atau meneruskan ke Tim IT)
+      // 5. Solusi Akses IT
       if (textLower.includes("vpn") || textLower.includes("cache") || textLower.includes("browser") || textLower.includes("it") || textLower.includes("server") || textLower.includes("alternatif") || textLower.includes("tunggu") || textLower.includes("menunggu")) {
         dynamicMarkup.inline_keyboard.push([{ text: "🔗 COBA LINK ALTERNATIF INI", url: "https://mez.ink/ayowd99" }]);
       }
 
-      // Pastikan ada indikator panah ke bawah jika sistem memunculkan tombol, dengan bahasa sopan
+      // Menambahkan teks petunjuk panah HANYA jika ada tombol yang muncul
       if (dynamicMarkup.inline_keyboard.length > 0) {
         aiResponseText += "\n\n👇 <i>Silakan gunakan akses berikut untuk kemudahan Anda:</i>";
       }
@@ -166,4 +183,4 @@ bot.on("message", async (msg) => {
 });
 
 bot.on("polling_error", (error) => console.error(error));
-console.log("🚀 AYOWD Bot (Alur CS Formal & Ramah) siap melayani!");
+console.log("🚀 AYOWD Bot (Tombol Promo & WA Aktif) siap melayani!");
