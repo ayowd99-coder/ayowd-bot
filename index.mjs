@@ -50,8 +50,8 @@ bot.onText(/\/start/, async (msg) => {
       parse_mode: "HTML",
       reply_markup: {
         inline_keyboard: [
-          [{ text: "🎯 MASUK KE SITUS", url: "https://ayowdlogin.pages.dev/" }],
-          [{ text: "📝 DAFTAR SEKARANG", url: "https://lite.link/ayowd99" }, { text: "🔐 LOGIN", url: "https://mez.ink/ayowd99" }],
+          [{ text: "🎯 MASUK KE SITUS", url: "https://ayo-wd.xyz/daftar" }],
+          [{ text: "📝 DAFTAR SEKARANG", url: "https://ayo-wd.xyz/prioritas" }, { text: "🔐 LOGIN", url: "https://ayo-wd.xyz/login" }],
         ],
       },
     });
@@ -142,7 +142,7 @@ bot.on("message", async (msg) => {
 
       // 2. WhatsApp
       if (textLower.includes("whatsapp") || textLower.includes("wa")) {
-        dynamicMarkup.inline_keyboard.push([{ text: "🟢 WHATSAPP", url: "https://wa.me/6281234567890" }]); 
+        dynamicMarkup.inline_keyboard.push([{ text: "🟢 WHATSAPP", url: "https://wa.me/855312168901 }]); 
       }
 
       // 3. RTP & Pola
@@ -153,14 +153,14 @@ bot.on("message", async (msg) => {
       // 4. Daftar & Login
       if (textLower.includes("daftar") || textLower.includes("akun") || textLower.includes("depo") || textLower.includes("aktif")) {
         dynamicMarkup.inline_keyboard.push([
-          { text: "📝 DAFTAR", url: "https://ayo-wd.xyz/loginvip" },
-          { text: "🔐 LOGIN", url: "https://mez.ink/ayowd99" }
+          { text: "📝 DAFTAR", url: "https://ayo-wd.xyz/login" },
+          { text: "🔐 LOGIN", url: "https://ayo-wd.xyz/prioritas" }
         ]);
       }
 
       // 5. Solusi Akses IT & Link Alternatif
       if (textLower.includes("alternatif") || textLower.includes("vpn") || textLower.includes("cache") || textLower.includes("browser") || textLower.includes("it") || textLower.includes("server") || textLower.includes("tunggu") || textLower.includes("menunggu")) {
-        dynamicMarkup.inline_keyboard.push([{ text: "🔗 LINK ALTERNATIF", url: "https://mez.ink/ayowd99" }]);
+        dynamicMarkup.inline_keyboard.push([{ text: "🔗 LINK ALTERNATIF", url: "https://ayo-wd.xyz/prioritas" }]);
       }
 
       // Menambahkan teks petunjuk panah yang bersih, rapi, dan tidak lebay
