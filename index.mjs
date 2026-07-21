@@ -142,7 +142,7 @@ bot.on("message", async (msg) => {
 
       // 2. WhatsApp
       if (textLower.includes("whatsapp") || textLower.includes("wa")) {
-        dynamicMarkup.inline_keyboard.push([{ text: "🟢 WHATSAPP", url: "https://wa.me/855312168901 }]); 
+        dynamicMarkup.inline_keyboard.push([{ text: "🟢 WHATSAPP", url: "https://wa.me/855312168901" }]); 
       }
 
       // 3. RTP & Pola
