@@ -103,6 +103,19 @@ bot.on("message", async (msg) => {
       if (history.length > 10) history.shift();
 
       bot.sendChatAction(chatId, "typing");
+
+      const opsiHari = { timeZone: 'Asia/Jakarta', weekday: 'long' };
+      const hariIni = new Intl.DateTimeFormat('id-ID', opsiHari).format(new Date()); // Output: "Senin", "Kamis", dll
+
+      let finalSystemPrompt = baseSystemPrompt;
+
+      // Logika Prompt Dinamis Berdasarkan Hari
+      if (hariIni.toLowerCase() === "kamis") {
+        finalSystemPrompt += `\n9. MAINTENANCE / GANGGUAN: HARI INI ADALAH KAMIS. Jika member komplain situs gangguan atau bertanya soal maintenance, informasikan secara natural bahwa saat ini ada jadwal maintenance rutin pukul 07:00 - 09:00 WIB. Selama maintenance, meja permainan, depo, dan WD ditutup sementara.`;
+      } else {
+        finalSystemPrompt += `\n9. MAINTENANCE / GANGGUAN: HARI INI BUKAN KAMIS (TIDAK ADA MAINTENANCE RUTIN). Jika member komplain situs gangguan/error, arahkan mereka untuk clear cache, menggunakan VPN, atau minta tangkapan layar (screenshot) agar bisa dicek lebih lanjut. JANGAN menyebutkan maintenance Kamis.`;
+      }
+      // --------------------------------------------------
       
       const response = await fetch("https://api.mistral.ai/v1/chat/completions", {
         method: "POST",
