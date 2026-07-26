@@ -108,7 +108,7 @@ bot.on("message", async (msg) => {
       // DETEKSI HARI & INJEKSI PROMPT MAINTENANCE
       // ==========================================
       const opsiHari = { timeZone: 'Asia/Jakarta', weekday: 'long' };
-      const hariIni = new Intl.DateTimeFormat('id-ID', opsiHari).format(new Date());
+      const hariIni = new Intl.DateTimeFormat('id-ID', opsiHari).format(new Date()); // Mengambil hari nyata di WIB
 
       let finalSystemPrompt = baseSystemPrompt;
 
