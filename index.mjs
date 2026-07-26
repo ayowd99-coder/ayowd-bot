@@ -30,7 +30,7 @@ ATURAN MUTLAK & HARAM DILANGGAR:
 4. DILARANG meminta maaf jika tidak ada kendala/kesalahan.
 5. DILARANG basa-basi atau bertele-tele di akhir pesan.
 6. JANGAN pernah menyalahkan atau meragukan member.
-7. JANGAN PERNAH mengarang hari atau tanggal. SELALU patuhi informasi hari yang diberikan di system prompt. Jika member bertanya hari, jawab PERSIS sesuai yang diinstruksikan.
+7. JANGAN PERNAH mengarang hari atau tanggal. SELALU patuhi informasi hari yang diberikan di system prompt.
 
 === DATABASE JAWABAN ===
 1. CARA DAFTAR: Jelaskan pendaftaran sangat mudah. Minta member menyiapkan data diri.
@@ -108,17 +108,20 @@ bot.on("message", async (msg) => {
       if (humanTakeover.has(chatId)) return;
 
       // ==========================================
-      // DETEKSI HARI YANG LEBIH STABIL (TIDAK PAKAI Intl)
+      // DETEKSI HARI YANG STABIL + BESOK & KEMARIN
       // ==========================================
       const days = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
       const now = new Date();
-      // Hitung waktu Jakarta (UTC+7) secara manual
       const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
       const jakartaTime = new Date(utc + (7 * 60 * 60000));
-      const hariIni = days[jakartaTime.getDay()];
 
-      // Jika member tanya tentang hari, RESET history biar tidak terpengaruh jawaban lama
-      const tanyaHari = /hari ini|hari apa|sekarang hari/i.test(userText);
+      const hariIniIndex = jakartaTime.getDay();
+      const hariIni = days[hariIniIndex];
+      const besok = days[(hariIniIndex + 1) % 7];
+      const kemarin = days[(hariIniIndex + 6) % 7]; // -1 dengan modulo
+
+      // Reset history jika tanya tentang hari (supaya bersih)
+      const tanyaHari = /hari ini|hari apa|besok|kemarin|sekarang hari/i.test(userText);
       if (tanyaHari) {
         chatHistory.set(chatId, []);
       }
@@ -132,12 +135,17 @@ bot.on("message", async (msg) => {
 
       let finalSystemPrompt = baseSystemPrompt;
 
-      // Paksa AI dengan sangat keras
+      // Inject informasi hari yang lengkap
       finalSystemPrompt += `\n\n=== INFORMASI WAKTU SAAT INI (WAJIB DIPATUHI 100%) ===
-Hari ini adalah **${hariIni}**.
-- Jika member bertanya "hari ini hari apa?" atau sejenisnya, jawab PERSIS: "Hari ini ${hariIni}."
-- JANGAN bilang Senin, Selasa, Rabu, Kamis, Jumat, atau Sabtu kecuali hari ini memang hari tersebut.
-- JANGAN mengarang. Patuhi informasi di atas.`;
+- Hari ini adalah **${hariIni}**.
+- Besok adalah **${besok}**.
+- Kemarin adalah **${kemarin}**.
+
+ATURAN JAWABAN HARI:
+- Jika member bertanya "hari ini hari apa?" → jawab: "Hari ini ${hariIni}."
+- Jika member bertanya "besok hari apa?" → jawab: "Besok ${besok}."
+- Jika member bertanya "kemarin hari apa?" → jawab: "Kemarin ${kemarin}."
+- JANGAN pernah bilang hari yang salah. Patuhi data di atas.`;
 
       if (hariIni === "Kamis") {
         finalSystemPrompt += `\n9. MAINTENANCE / GANGGUAN: HARI INI ADALAH KAMIS. Jika member komplain situs gangguan atau tanya maintenance, informasikan bahwa HARI INI sedang ada maintenance rutin (07:00 - 09:00 WIB). Meja permainan, deposit, dan withdraw ditutup sementara.`;
@@ -154,7 +162,7 @@ Hari ini adalah **${hariIni}**.
         body: JSON.stringify({
           model: "mistral-small-latest",
           messages: [{ role: "system", content: finalSystemPrompt }, ...history],
-          temperature: 0.3 // lebih rendah supaya lebih patuh
+          temperature: 0.2 // makin rendah biar lebih patuh
         }),
       });
 
