@@ -19,15 +19,15 @@ const topicToUser = new Map();
 const humanTakeover = new Set(); 
 const chatHistory = new Map(); 
 
-// SYSTEM PROMPT: FORMAL, PROFESIONAL, NATURAL (ANTI-KAKU / ANTI-LEBAY)
-const systemPrompt = `Kamu adalah Customer Service dari AYOWD. Gaya bahasa: sopan, profesional, natural (tidak kaku), dan to the point. JANGAN menggunakan bahasa yang terlalu kaku, lebay, atau seperti robot.
+// SYSTEM PROMPT DASAR (Hanya sampai poin 8)
+const baseSystemPrompt = `Kamu adalah Customer Service dari AYOWD. Gaya bahasa: sopan, profesional, natural (tidak kaku), dan to the point. JANGAN menggunakan bahasa yang terlalu kaku, lebay, atau seperti robot.
 
 ATURAN MUTLAK & HARAM DILANGGAR:
 1. DILARANG KERAS mengetik URL/Link (seperti http atau www) di dalam teks. 
 2. JIKA MEMBER MEMINTA LINK (link alternatif, login, daftar, dll), JANGAN MENOLAK! Jawab dengan singkat dan natural, contoh: "Baik, berikut adalah aksesnya." DILARANG menggunakan kata-kata kaku seperti "untuk kenyamanan/kemudahan Anda".
 3. DILARANG KERAS mengetik kata "tombol" atau menyuruh user mengklik sesuatu di bawah. (Sistem yang akan memunculkan menunya otomatis).
 4. DILARANG meminta maaf jika tidak ada kendala/kesalahan.
-5. DILARANG basa-basi atau bertele-tele di akhir pesan (seperti: "Ada yang bisa dibantu lagi?").
+5. DILARANG basa-basi atau bertele-tele di akhir pesan.
 6. JANGAN pernah menyalahkan atau meragukan member.
 
 === DATABASE JAWABAN ===
@@ -104,12 +104,27 @@ bot.on("message", async (msg) => {
 
       bot.sendChatAction(chatId, "typing");
       
+      // ==========================================
+      // DETEKSI HARI & INJEKSI PROMPT MAINTENANCE
+      // ==========================================
+      const opsiHari = { timeZone: 'Asia/Jakarta', weekday: 'long' };
+      const hariIni = new Intl.DateTimeFormat('id-ID', opsiHari).format(new Date());
+
+      let finalSystemPrompt = baseSystemPrompt;
+
+      if (hariIni.toLowerCase() === "kamis") {
+        finalSystemPrompt += `\n9. MAINTENANCE / GANGGUAN: HARI INI ADALAH KAMIS. Jika member komplain situs gangguan atau bertanya soal maintenance, informasikan secara natural bahwa saat ini ada jadwal maintenance rutin pukul 07:00 - 09:00 WIB. Selama maintenance, meja permainan, depo, dan WD ditutup sementara.`;
+      } else {
+        finalSystemPrompt += `\n9. MAINTENANCE / GANGGUAN: HARI INI BUKAN KAMIS (TIDAK ADA MAINTENANCE RUTIN). Jika member komplain situs gangguan/error, arahkan mereka untuk clear cache, menggunakan VPN, atau minta tangkapan layar (screenshot) agar bisa dicek lebih lanjut. JANGAN menyebutkan maintenance Kamis.`;
+      }
+      // ==========================================
+
       const response = await fetch("https://api.mistral.ai/v1/chat/completions", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${process.env.MISTRAL_API_KEY}` },
         body: JSON.stringify({
           model: "mistral-small-latest",
-          messages: [{ role: "system", content: systemPrompt }, ...history],
+          messages: [{ role: "system", content: finalSystemPrompt }, ...history],
         }),
       });
       
@@ -131,39 +146,29 @@ bot.on("message", async (msg) => {
       const textLower = aiResponseText.toLowerCase();
       
       // LOGIKA TOMBOL DINAMIS
-      
-      // 1. Promo & LiveChat
       if (textLower.includes("promo") || textLower.includes("bonus") || textLower.includes("livechat") || textLower.includes("live chat")) {
         dynamicMarkup.inline_keyboard.push([
           { text: "🎁 INFO PROMO", url: "https://t.me/ayowdvip" },
           { text: "💬 LIVECHAT", url: "https://ayo-wd.xyz/loginvip" } 
         ]);
       }
-
-      // 2. WhatsApp
       if (textLower.includes("whatsapp") || textLower.includes("wa")) {
         dynamicMarkup.inline_keyboard.push([{ text: "🟢 WHATSAPP", url: "https://wa.me/855312168901" }]); 
       }
-
-      // 3. RTP & Pola
       if (textLower.includes("rtp") || textLower.includes("pola") || textLower.includes("bocoran")) {
         dynamicMarkup.inline_keyboard.push([{ text: "📊 CEK RTP & POLA", url: "https://ayo-wd.xyz/loginvip" }]);
       }
-      
-      // 4. Daftar & Login
       if (textLower.includes("daftar") || textLower.includes("akun") || textLower.includes("depo") || textLower.includes("aktif")) {
         dynamicMarkup.inline_keyboard.push([
           { text: "📝 DAFTAR", url: "https://ayo-wd.xyz/login" },
           { text: "🔐 LOGIN", url: "https://ayo-wd.xyz/prioritas" }
         ]);
       }
-
-      // 5. Solusi Akses IT & Link Alternatif
-      if (textLower.includes("alternatif") || textLower.includes("vpn") || textLower.includes("cache") || textLower.includes("browser") || textLower.includes("it") || textLower.includes("server") || textLower.includes("tunggu") || textLower.includes("menunggu")) {
+      // Deteksi Maintenance ditambahkan di sini
+      if (textLower.includes("alternatif") || textLower.includes("vpn") || textLower.includes("cache") || textLower.includes("browser") || textLower.includes("it") || textLower.includes("server") || textLower.includes("tunggu") || textLower.includes("menunggu") || textLower.includes("maintenance") || textLower.includes("gangguan") || textLower.includes("pemeliharaan")) {
         dynamicMarkup.inline_keyboard.push([{ text: "🔗 LINK ALTERNATIF", url: "https://ayo-wd.xyz/prioritas" }]);
       }
 
-      // Menambahkan teks petunjuk panah yang bersih, rapi, dan tidak lebay
       if (dynamicMarkup.inline_keyboard.length > 0) {
         aiResponseText += "\n\n👇 <i>Akses Cepat:</i>";
       }
@@ -180,4 +185,4 @@ bot.on("message", async (msg) => {
 });
 
 bot.on("polling_error", (error) => console.error(error));
-console.log("🚀 AYOWD Bot (Start Greeting Diperbarui) siap melayani!");
+console.log("🚀 AYOWD Bot siap melayani!");
