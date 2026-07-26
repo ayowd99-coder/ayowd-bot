@@ -20,7 +20,7 @@ const topicToUser = new Map();
 const humanTakeover = new Set();
 const chatHistory = new Map();
 
-// SYSTEM PROMPT DASAR (Hanya sampai poin 8)
+// SYSTEM PROMPT DASAR
 const baseSystemPrompt = `Kamu adalah Customer Service dari AYOWD. Gaya bahasa: sopan, profesional, natural (tidak kaku), dan to the point. JANGAN menggunakan bahasa yang terlalu kaku, lebay, atau seperti robot.
 
 ATURAN MUTLAK & HARAM DILANGGAR:
@@ -30,7 +30,7 @@ ATURAN MUTLAK & HARAM DILANGGAR:
 4. DILARANG meminta maaf jika tidak ada kendala/kesalahan.
 5. DILARANG basa-basi atau bertele-tele di akhir pesan.
 6. JANGAN pernah menyalahkan atau meragukan member.
-7. JANGAN PERNAH mengarang hari atau tanggal. SELALU patuhi informasi hari yang diberikan di system prompt.
+7. JANGAN PERNAH mengarang hari atau tanggal. SELALU patuhi informasi hari yang diberikan di system prompt. Jika member bertanya hari, jawab PERSIS sesuai yang diinstruksikan.
 
 === DATABASE JAWABAN ===
 1. CARA DAFTAR: Jelaskan pendaftaran sangat mudah. Minta member menyiapkan data diri.
@@ -45,7 +45,7 @@ ATURAN MUTLAK & HARAM DILANGGAR:
 bot.onText(/\/start/, async (msg) => {
   const chatId = msg.chat.id;
   const firstName = msg.from?.first_name || "Kak";
-  chatHistory.set(chatId, []);
+  chatHistory.set(chatId, []); // reset history saat /start
 
   try {
     await bot.sendPhoto(chatId, "https://i.postimg.cc/5NxNJJx1/barua.png", {
@@ -107,6 +107,22 @@ bot.on("message", async (msg) => {
 
       if (humanTakeover.has(chatId)) return;
 
+      // ==========================================
+      // DETEKSI HARI YANG LEBIH STABIL (TIDAK PAKAI Intl)
+      // ==========================================
+      const days = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+      const now = new Date();
+      // Hitung waktu Jakarta (UTC+7) secara manual
+      const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+      const jakartaTime = new Date(utc + (7 * 60 * 60000));
+      const hariIni = days[jakartaTime.getDay()];
+
+      // Jika member tanya tentang hari, RESET history biar tidak terpengaruh jawaban lama
+      const tanyaHari = /hari ini|hari apa|sekarang hari/i.test(userText);
+      if (tanyaHari) {
+        chatHistory.set(chatId, []);
+      }
+
       if (!chatHistory.has(chatId)) chatHistory.set(chatId, []);
       const history = chatHistory.get(chatId);
       history.push({ role: "user", content: userText });
@@ -114,26 +130,20 @@ bot.on("message", async (msg) => {
 
       bot.sendChatAction(chatId, "typing");
 
-      // ==========================================
-      // DETEKSI HARI & INJEKSI PROMPT MAINTENANCE
-      // ==========================================
-      const opsiHari = { timeZone: "Asia/Jakarta", weekday: "long" };
-      const hariIni = new Intl.DateTimeFormat("id-ID", opsiHari).format(new Date()); // Contoh: "Minggu"
-
       let finalSystemPrompt = baseSystemPrompt;
 
-      // SELALU beritahu AI hari apa sekarang (ini yang bikin tidak salah lagi)
-      finalSystemPrompt += `\n\nINFORMASI WAKTU SAAT INI (WAJIB DIPATUHI):
-- Hari ini adalah **${hariIni}**.
-- JANGAN pernah bilang hari lain selain ${hariIni}.
-- Jika member bertanya "hari ini hari apa?", jawab dengan tegas: "Hari ini ${hariIni}."`;
+      // Paksa AI dengan sangat keras
+      finalSystemPrompt += `\n\n=== INFORMASI WAKTU SAAT INI (WAJIB DIPATUHI 100%) ===
+Hari ini adalah **${hariIni}**.
+- Jika member bertanya "hari ini hari apa?" atau sejenisnya, jawab PERSIS: "Hari ini ${hariIni}."
+- JANGAN bilang Senin, Selasa, Rabu, Kamis, Jumat, atau Sabtu kecuali hari ini memang hari tersebut.
+- JANGAN mengarang. Patuhi informasi di atas.`;
 
-      if (hariIni.toLowerCase() === "kamis") {
+      if (hariIni === "Kamis") {
         finalSystemPrompt += `\n9. MAINTENANCE / GANGGUAN: HARI INI ADALAH KAMIS. Jika member komplain situs gangguan atau tanya maintenance, informasikan bahwa HARI INI sedang ada maintenance rutin (07:00 - 09:00 WIB). Meja permainan, deposit, dan withdraw ditutup sementara.`;
       } else {
         finalSystemPrompt += `\n9. MAINTENANCE / GANGGUAN: HARI INI BUKAN KAMIS (hari ini ${hariIni}). Jadwal maintenance rutin situs HANYA dilakukan setiap hari KAMIS pukul 07:00 - 09:00 WIB. Karena hari ini BUKAN hari Kamis, maka saat ini TIDAK ADA maintenance. Jika member komplain gangguan/error hari ini, arahkan untuk clear cache, gunakan VPN, atau minta tangkapan layar (screenshot).`;
       }
-      // ==========================================
 
       const response = await fetch("https://api.mistral.ai/v1/chat/completions", {
         method: "POST",
@@ -144,13 +154,14 @@ bot.on("message", async (msg) => {
         body: JSON.stringify({
           model: "mistral-small-latest",
           messages: [{ role: "system", content: finalSystemPrompt }, ...history],
+          temperature: 0.3 // lebih rendah supaya lebih patuh
         }),
       });
 
       const data = await response.json();
       let aiResponseText = data.choices[0].message.content;
 
-      // Filter Sapu Bersih (Anti-Link & Anti-Tombol)
+      // Filter Sapu Bersih
       aiResponseText = aiResponseText
         .replace(/https?:\/\/\S+/g, "")
         .replace(/\*\*(.*?)\*\*/g, "<b>$1</b>")
@@ -164,7 +175,6 @@ bot.on("message", async (msg) => {
       let dynamicMarkup = { inline_keyboard: [] };
       const textLower = aiResponseText.toLowerCase();
 
-      // LOGIKA TOMBOL DINAMIS
       if (textLower.includes("promo") || textLower.includes("bonus") || textLower.includes("livechat") || textLower.includes("live chat")) {
         dynamicMarkup.inline_keyboard.push([
           { text: "🎁 INFO PROMO", url: "https://t.me/ayowdvip" },
@@ -187,7 +197,6 @@ bot.on("message", async (msg) => {
         ]);
       }
 
-      // Deteksi Maintenance ditambahkan di sini
       if (
         textLower.includes("alternatif") ||
         textLower.includes("vpn") ||
@@ -219,6 +228,7 @@ bot.on("message", async (msg) => {
       });
 
     } catch (error) {
+      console.error(error);
       bot.sendMessage(chatId, "Mohon maaf, sistem kami sedang sibuk. Mohon berkenan mengirimkan ulang pesan Anda. 🙏");
     }
   }
