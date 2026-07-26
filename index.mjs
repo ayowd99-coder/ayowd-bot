@@ -113,9 +113,9 @@ bot.on("message", async (msg) => {
       let finalSystemPrompt = baseSystemPrompt;
 
       if (hariIni.toLowerCase() === "kamis") {
-        finalSystemPrompt += `\n9. MAINTENANCE / GANGGUAN: HARI INI ADALAH KAMIS. Jika member komplain situs gangguan atau bertanya soal maintenance, informasikan secara natural bahwa saat ini ada jadwal maintenance rutin pukul 07:00 - 09:00 WIB. Selama maintenance, meja permainan, depo, dan WD ditutup sementara.`;
+        finalSystemPrompt += `\n9. MAINTENANCE / GANGGUAN: HARI INI ADALAH KAMIS. Jika member komplain situs gangguan atau tanya maintenance, informasikan bahwa HARI INI sedang ada maintenance rutin (07:00 - 09:00 WIB). Meja permainan, deposit, dan withdraw ditutup sementara.`;
       } else {
-        finalSystemPrompt += `\n9. MAINTENANCE / GANGGUAN: HARI INI BUKAN KAMIS (TIDAK ADA MAINTENANCE RUTIN). Jika member komplain situs gangguan/error, arahkan mereka untuk clear cache, menggunakan VPN, atau minta tangkapan layar (screenshot) agar bisa dicek lebih lanjut. JANGAN menyebutkan maintenance Kamis.`;
+        finalSystemPrompt += `\n9. MAINTENANCE / GANGGUAN: HARI INI BUKAN KAMIS. Jadwal maintenance rutin situs HANYA dilakukan setiap hari KAMIS pukul 07:00 - 09:00 WIB. Karena hari ini BUKAN hari Kamis, maka saat ini TIDAK ADA maintenance. Jika member komplain gangguan/error hari ini, arahkan untuk clear cache, gunakan VPN, atau minta tangkapan layar (screenshot).`;
       }
       // ==========================================
 
