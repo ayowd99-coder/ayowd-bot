@@ -2,33 +2,35 @@ import http from "http";
 import TelegramBot from "node-telegram-bot-api";
 
 const port = process.env.PORT || 3000;
+
 http.createServer((_req, res) => {
   res.writeHead(200);
   res.end("AYOWD Bot is running");
 }).listen(Number(port));
 
 const token = "8746210235:AAEWUolYwnnM535nonnqjAx5-2BmmEsu5cA";
-const bot = new TelegramBot(token, { 
-  polling: { polling: true, drop_pending_updates: true } 
+const bot = new TelegramBot(token, {
+  polling: { polling: true, drop_pending_updates: true }
 });
 
 bot.setMyCommands([{ command: "/start", description: "🔄 Mulai ulang Bot & Buka Menu" }]);
 
 const userToTopic = new Map();
 const topicToUser = new Map();
-const humanTakeover = new Set(); 
-const chatHistory = new Map(); 
+const humanTakeover = new Set();
+const chatHistory = new Map();
 
 // SYSTEM PROMPT DASAR (Hanya sampai poin 8)
 const baseSystemPrompt = `Kamu adalah Customer Service dari AYOWD. Gaya bahasa: sopan, profesional, natural (tidak kaku), dan to the point. JANGAN menggunakan bahasa yang terlalu kaku, lebay, atau seperti robot.
 
 ATURAN MUTLAK & HARAM DILANGGAR:
-1. DILARANG KERAS mengetik URL/Link (seperti http atau www) di dalam teks. 
+1. DILARANG KERAS mengetik URL/Link (seperti http atau www) di dalam teks.
 2. JIKA MEMBER MEMINTA LINK (link alternatif, login, daftar, dll), JANGAN MENOLAK! Jawab dengan singkat dan natural, contoh: "Baik, berikut adalah aksesnya." DILARANG menggunakan kata-kata kaku seperti "untuk kenyamanan/kemudahan Anda".
 3. DILARANG KERAS mengetik kata "tombol" atau menyuruh user mengklik sesuatu di bawah. (Sistem yang akan memunculkan menunya otomatis).
 4. DILARANG meminta maaf jika tidak ada kendala/kesalahan.
 5. DILARANG basa-basi atau bertele-tele di akhir pesan.
 6. JANGAN pernah menyalahkan atau meragukan member.
+7. JANGAN PERNAH mengarang hari atau tanggal. SELALU patuhi informasi hari yang diberikan di system prompt.
 
 === DATABASE JAWABAN ===
 1. CARA DAFTAR: Jelaskan pendaftaran sangat mudah. Minta member menyiapkan data diri.
@@ -44,6 +46,7 @@ bot.onText(/\/start/, async (msg) => {
   const chatId = msg.chat.id;
   const firstName = msg.from?.first_name || "Kak";
   chatHistory.set(chatId, []);
+
   try {
     await bot.sendPhoto(chatId, "https://i.postimg.cc/5NxNJJx1/barua.png", {
       caption: `Halo Kak <b>${firstName.toUpperCase()}</b>, selamat datang di layanan Customer Service AYOWD.\n\nAda yang bisa kami bantu hari ini?\n\n👇 <i>Akses Cepat:</i>`,
@@ -55,7 +58,9 @@ bot.onText(/\/start/, async (msg) => {
         ],
       },
     });
-  } catch (error) { console.error(error); }
+  } catch (error) {
+    console.error(error);
+  }
 });
 
 bot.on("message", async (msg) => {
@@ -70,15 +75,18 @@ bot.on("message", async (msg) => {
     const threadId = msg.message_thread_id;
     if (threadId && topicToUser.has(threadId)) {
       const targetUserId = topicToUser.get(threadId);
+
       if (userText === "/auto") {
         humanTakeover.delete(targetUserId);
         bot.sendMessage(groupId, "🤖 <i>AI kembali AKTIF.</i>", { message_thread_id: threadId, parse_mode: "HTML" });
         return;
       }
+
       if (!humanTakeover.has(targetUserId)) {
         humanTakeover.add(targetUserId);
         bot.sendMessage(groupId, "⚠️ <i>Admin mengambil alih.</i>", { message_thread_id: threadId, parse_mode: "HTML" });
       }
+
       bot.sendMessage(targetUserId, userText);
     }
     return;
@@ -94,8 +102,10 @@ bot.on("message", async (msg) => {
         userToTopic.set(chatId, threadId);
         topicToUser.set(threadId, chatId);
       }
+
       await bot.sendMessage(groupId, `💬 <b>Member:</b>\n${userText}`, { message_thread_id: threadId, parse_mode: "HTML" });
-      if (humanTakeover.has(chatId)) return; 
+
+      if (humanTakeover.has(chatId)) return;
 
       if (!chatHistory.has(chatId)) chatHistory.set(chatId, []);
       const history = chatHistory.get(chatId);
@@ -103,39 +113,48 @@ bot.on("message", async (msg) => {
       if (history.length > 10) history.shift();
 
       bot.sendChatAction(chatId, "typing");
-      
+
       // ==========================================
       // DETEKSI HARI & INJEKSI PROMPT MAINTENANCE
       // ==========================================
-      const opsiHari = { timeZone: 'Asia/Jakarta', weekday: 'long' };
-      const hariIni = new Intl.DateTimeFormat('id-ID', opsiHari).format(new Date()); // Mengambil hari nyata di WIB
+      const opsiHari = { timeZone: "Asia/Jakarta", weekday: "long" };
+      const hariIni = new Intl.DateTimeFormat("id-ID", opsiHari).format(new Date()); // Contoh: "Minggu"
 
       let finalSystemPrompt = baseSystemPrompt;
+
+      // SELALU beritahu AI hari apa sekarang (ini yang bikin tidak salah lagi)
+      finalSystemPrompt += `\n\nINFORMASI WAKTU SAAT INI (WAJIB DIPATUHI):
+- Hari ini adalah **${hariIni}**.
+- JANGAN pernah bilang hari lain selain ${hariIni}.
+- Jika member bertanya "hari ini hari apa?", jawab dengan tegas: "Hari ini ${hariIni}."`;
 
       if (hariIni.toLowerCase() === "kamis") {
         finalSystemPrompt += `\n9. MAINTENANCE / GANGGUAN: HARI INI ADALAH KAMIS. Jika member komplain situs gangguan atau tanya maintenance, informasikan bahwa HARI INI sedang ada maintenance rutin (07:00 - 09:00 WIB). Meja permainan, deposit, dan withdraw ditutup sementara.`;
       } else {
-        finalSystemPrompt += `\n9. MAINTENANCE / GANGGUAN: HARI INI BUKAN KAMIS. Jadwal maintenance rutin situs HANYA dilakukan setiap hari KAMIS pukul 07:00 - 09:00 WIB. Karena hari ini BUKAN hari Kamis, maka saat ini TIDAK ADA maintenance. Jika member komplain gangguan/error hari ini, arahkan untuk clear cache, gunakan VPN, atau minta tangkapan layar (screenshot).`;
+        finalSystemPrompt += `\n9. MAINTENANCE / GANGGUAN: HARI INI BUKAN KAMIS (hari ini ${hariIni}). Jadwal maintenance rutin situs HANYA dilakukan setiap hari KAMIS pukul 07:00 - 09:00 WIB. Karena hari ini BUKAN hari Kamis, maka saat ini TIDAK ADA maintenance. Jika member komplain gangguan/error hari ini, arahkan untuk clear cache, gunakan VPN, atau minta tangkapan layar (screenshot).`;
       }
       // ==========================================
 
       const response = await fetch("https://api.mistral.ai/v1/chat/completions", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${process.env.MISTRAL_API_KEY}` },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${process.env.MISTRAL_API_KEY}`
+        },
         body: JSON.stringify({
           model: "mistral-small-latest",
           messages: [{ role: "system", content: finalSystemPrompt }, ...history],
         }),
       });
-      
+
       const data = await response.json();
       let aiResponseText = data.choices[0].message.content;
-      
+
       // Filter Sapu Bersih (Anti-Link & Anti-Tombol)
       aiResponseText = aiResponseText
         .replace(/https?:\/\/\S+/g, "")
-        .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
-        .replace(/\*/g, '')
+        .replace(/\*\*(.*?)\*\*/g, "<b>$1</b>")
+        .replace(/\*/g, "")
         .replace(/klik tombol.*/gi, "")
         .replace(/tombol/gi, "menu")
         .trim();
@@ -144,28 +163,44 @@ bot.on("message", async (msg) => {
 
       let dynamicMarkup = { inline_keyboard: [] };
       const textLower = aiResponseText.toLowerCase();
-      
+
       // LOGIKA TOMBOL DINAMIS
       if (textLower.includes("promo") || textLower.includes("bonus") || textLower.includes("livechat") || textLower.includes("live chat")) {
         dynamicMarkup.inline_keyboard.push([
           { text: "🎁 INFO PROMO", url: "https://t.me/ayowdvip" },
-          { text: "💬 LIVECHAT", url: "https://ayo-wd.xyz/loginvip" } 
+          { text: "💬 LIVECHAT", url: "https://ayo-wd.xyz/loginvip" }
         ]);
       }
+
       if (textLower.includes("whatsapp") || textLower.includes("wa")) {
-        dynamicMarkup.inline_keyboard.push([{ text: "🟢 WHATSAPP", url: "https://wa.me/855312168901" }]); 
+        dynamicMarkup.inline_keyboard.push([{ text: "🟢 WHATSAPP", url: "https://wa.me/855312168901" }]);
       }
+
       if (textLower.includes("rtp") || textLower.includes("pola") || textLower.includes("bocoran")) {
         dynamicMarkup.inline_keyboard.push([{ text: "📊 CEK RTP & POLA", url: "https://ayo-wd.xyz/loginvip" }]);
       }
+
       if (textLower.includes("daftar") || textLower.includes("akun") || textLower.includes("depo") || textLower.includes("aktif")) {
         dynamicMarkup.inline_keyboard.push([
           { text: "📝 DAFTAR", url: "https://ayo-wd.xyz/login" },
           { text: "🔐 LOGIN", url: "https://ayo-wd.xyz/prioritas" }
         ]);
       }
+
       // Deteksi Maintenance ditambahkan di sini
-      if (textLower.includes("alternatif") || textLower.includes("vpn") || textLower.includes("cache") || textLower.includes("browser") || textLower.includes("it") || textLower.includes("server") || textLower.includes("tunggu") || textLower.includes("menunggu") || textLower.includes("maintenance") || textLower.includes("gangguan") || textLower.includes("pemeliharaan")) {
+      if (
+        textLower.includes("alternatif") ||
+        textLower.includes("vpn") ||
+        textLower.includes("cache") ||
+        textLower.includes("browser") ||
+        textLower.includes("it") ||
+        textLower.includes("server") ||
+        textLower.includes("tunggu") ||
+        textLower.includes("menunggu") ||
+        textLower.includes("maintenance") ||
+        textLower.includes("gangguan") ||
+        textLower.includes("pemeliharaan")
+      ) {
         dynamicMarkup.inline_keyboard.push([{ text: "🔗 LINK ALTERNATIF", url: "https://ayo-wd.xyz/prioritas" }]);
       }
 
@@ -173,13 +208,18 @@ bot.on("message", async (msg) => {
         aiResponseText += "\n\n👇 <i>Akses Cepat:</i>";
       }
 
-      bot.sendMessage(chatId, aiResponseText, { 
+      bot.sendMessage(chatId, aiResponseText, {
         parse_mode: "HTML",
         reply_markup: dynamicMarkup.inline_keyboard.length > 0 ? dynamicMarkup : undefined
       });
-      bot.sendMessage(groupId, `🤖 <b>AI Membalas:</b>\n${aiResponseText}`, { message_thread_id: threadId, parse_mode: "HTML" });
-    } catch (error) { 
-      bot.sendMessage(chatId, "Mohon maaf, sistem kami sedang sibuk. Mohon berkenan mengirimkan ulang pesan Anda. 🙏"); 
+
+      bot.sendMessage(groupId, `🤖 <b>AI Membalas:</b>\n${aiResponseText}`, {
+        message_thread_id: threadId,
+        parse_mode: "HTML"
+      });
+
+    } catch (error) {
+      bot.sendMessage(chatId, "Mohon maaf, sistem kami sedang sibuk. Mohon berkenan mengirimkan ulang pesan Anda. 🙏");
     }
   }
 });
